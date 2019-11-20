@@ -135,6 +135,7 @@ OR2019_Biologicals <- read_csv("Data/sxo_201901_biological_measurements.csv")
 # adding Survey column to enable bind on "Survey" and "Shot" columns
 OR2019_Biologicals_1 <- add_column(OR2019_Biologicals,Survey ='SO2019') %>% 
   # check the Area data and replace survey names
+  add_column(month = 'Jul') %>% 
   add_column(zone = 'Eastern') %>% 
   add_column(year = '2019') %>% 
   mutate_all(funs(str_replace(., "Paddies", "St Patricks"))) %>% 
@@ -149,7 +150,7 @@ OR2019_Biologicals_1 <- add_column(OR2019_Biologicals,Survey ='SO2019') %>%
   mutate(SLadj_cm = SL_cm) %>% 
   #no adjustment to length although based on discussion with RD, measured length may have
   # been fork length
-  select(zone,Survey,year, Shot, Area, FishNo, sex, stage, weight_kg, SL_cm, SLadj_cm) %>% 
+  select(zone,Survey,year, month,Shot, Area, FishNo, sex, stage, weight_kg, SL_cm, SLadj_cm) %>% 
   glimpse()
 
 OR2019_Biologicals_1
@@ -162,7 +163,7 @@ OR2019_Biologicals_1$Otoliths[OR2019_Biologicals_1$weight_kg>0] <- 1
 glimpse(OR2019_Biologicals_1)
 
 OR2019_Biologicals_1 %>% # (2509)
-  select(zone,Survey,year, Shot, Area, FishNo, sex, stage, weight_kg, SL_cm, SLadj_cm, Otoliths) %>% 
+  select(zone,Survey,year, month,Shot, Area, FishNo, sex, stage, weight_kg, SL_cm, SLadj_cm, Otoliths) %>% 
   glimpse()
 
 
