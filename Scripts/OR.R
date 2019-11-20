@@ -16,11 +16,15 @@ Shot
 
 Shot_1 <- Shot %>% #(464)
   filter(Area %in% c("St Patricks", "St Helens")) %>% 
-  mutate_all(funs(str_replace(., "eastern", "Eastern")))%>%
+  mutate(zone=case_when(zone =="eastern"~ "Eastern",TRUE~ as.character(zone))) %>% 
+  mutate(Survey = case_when(Survey== "EMP2013"~"EP2013", TRUE~as.character(Survey))) %>% 
+  mutate(Survey = case_when(Survey== "S02019"~"SO2019", TRUE~as.character(Survey))) %>% 
+  #mutate_all(funs(str_replace(., "eastern", "Eastern")))%>%
   mutate(Shot  = as.numeric(Operation)) %>% 
   mutate(Year = as.numeric(Year)) %>% 
   rename(ShotWeight_kg = 'Weight (kg)')%>% 
   glimpse()
+
 
 
 Shotcheck <- Shot_1 %>% 
@@ -189,7 +193,7 @@ ORMeasuresShot <- left_join(Biologicals_3, Shot_1,by= c("Survey","Shot")) %>%
   mutate(Area_MS = ifelse(Area.x =="U",Area.y,Area.x)) %>% 
   filter(Area_MS != "U")
 
-
+ORMeasuresShot
 
 MScheck <- ORMeasuresShot %>%
   #filter(year==2013) %>% 
@@ -224,6 +228,16 @@ Shot_1
 write.csv(ORMeasuresShot,"Results/OREastern_tidy2019.csv")
 
 
-
+test <- ORMeasuresShot %>% 
+  filter(year==1990) %>% 
+  group_by(Survey,year,Shot,lat1,Date) %>% 
+  summarise() %>% 
+  glimpse()
+  
+test1<- Shot_1 %>% 
+  filter(Year==1990) %>% 
+  group_by(Survey,Year,Shot,lat1,Date) %>% 
+  summarise() %>% 
+  glimpse()
 
 
