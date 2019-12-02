@@ -223,7 +223,10 @@ Shot_1
 
 
 
+OREastern87to2016 <- ORMeasuresShot %>% 
+  filter(year != 2019)
 
+write.csv(OREastern87to2016,"Results/OR87to2016.csv")
 
 
 write.csv(ORMeasuresShot,"Results/OREastern_tidy2019.csv")
