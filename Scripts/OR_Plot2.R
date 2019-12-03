@@ -3,6 +3,7 @@ library(ggplot2)
 library(scales)
 library(ggpubr)
 library(Rmisc)
+library(dplyr)
 
 #read in the tidy data from results
 Roughy <- read_csv("Results/OREastern_tidy2019.csv")
@@ -20,10 +21,11 @@ Roughy1 <- (Roughy) %>%
 
 
 Roughycheck <- Roughy %>% 
-  filter(year == 2019)%>% 
-  dplyr::group_by(year,Length) %>% 
+  filter(year == 1996)%>% 
+  dplyr::group_by(Area,sex) %>% 
   dplyr::summarise(n()) %>% 
 glimpse()
+
 
 # summary stats to create confidence intervals
 Roughy_sumstats <- Roughy1 %>% 
@@ -32,7 +34,6 @@ Roughy_sumstats <- Roughy1 %>%
             n= n(),
             sd = sd(Length, na.rm = TRUE),
             se = sd(Length) / sqrt(n()))
-
 #confidence inervals
 # ci = avg +- z * se
 #z score = qnorm(0.975) b/c 2.5% (0.025) on both tails
@@ -41,7 +42,8 @@ Roughy_groupci  <- Roughy_sumstats %>%
   mutate(error = qnorm(0.975) * sd/sqrt(n))
 
 
-#summarise data: using summarySE package Rmisc
+#summarise data: using summarySE package Rmisc (different method to acheive
+#ouyvomr for Roughy_sumstats)
 #summarySE provides the standard deviation, 
 #standard error of the mean, 
 #and a (default 95%) confidence interval
@@ -60,13 +62,18 @@ ggplot(data = Roughy,
 roughy2_sum
 
 #average SL by Area and sex
-ggplot(roughy2_sum,
-       aes(x = year,y = Length, shape =sex,colour = Area)) +
-  geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci))+
-  geom_point()+
-  geom_line()+
+pd <- position_dodge(0.6) # move position horizontally b/c of overlap
+ggplot(roughy2_sum, aes(x = year,y = Length, shape = Area, colour = sex)) +
+  geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Year")+
+  ylab("Average Standard Length (cm)")+
   scale_y_continuous(breaks = seq(30,38,1),limits = c(30,38))+
-  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))
+  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  theme_bw()+
+  theme(legend.position = c(1,0),legend.justification = c(1,0)) #legend bottom right
  
 # ggboxplot
 ggboxplot(Roughy1, x ="year", y= "Length", group = "sex",fill = "sex",
@@ -79,21 +86,25 @@ ggboxplot(Roughy1, x ="year", y= "Length", group = "sex",fill = "sex",
   
 #boxplot
 ggplot(Roughy,aes(x= as.character(year), y = Length)) +
-  geom_boxplot(aes(colour = sex, outlier.colour = sex))+
+  geom_boxplot(aes(colour = sex, fill = sex, outlier.colour = sex))+
   theme_bw()+
   theme(axis.text.x= element_text(angle = 90))+
   theme(axis.text.x = element_text(size = 8))+
-  
   stat_summary(fun.y = mean, aes(group = sex), geom = "point",
-              position = position_dodge(.9),size = .5) +
-  #geom_hline(yintercept = 35.6, linetype ="dashed")+
-  #geom_hline(yintercept = 33.4, linetype = "dashed")+
-  facet_wrap(~Area_MS)
-  
+              position = position_dodge(.9),size = 1) +
+  geom_hline(yintercept = 36.9, linetype ="dashed",colour= "red")+
+  geom_hline(yintercept = 34.7, linetype ="dashed",colour= "red")+
+  geom_hline(yintercept = 35.2, linetype ="dashed",colour= "#339999")+
+  geom_hline(yintercept = 32.2, linetype = "dashed",colour ="#339999")+
+  facet_wrap(~Area_MS)+
+  xlab("Year")+
+  ylab("Standard Length (cm)")+
+  theme(legend.position = c(1,0),legend.justification = c(1,0)) #legend bottom right
+ 
+roughy2_sum %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(max(Length),min(Length))
 
-Roughy %>% 
-group_by(sex) %>% 
-  summarise(mean(Length))
 
 RoughyWeight<- Roughy %>% 
   drop_na(weight_kg) %>% 
