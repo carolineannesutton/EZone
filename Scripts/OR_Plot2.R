@@ -2,39 +2,51 @@ library(tidyverse)
 library(ggplot2)
 library(scales)
 library(ggpubr)
+library(Rmisc)
 
-#read in data
+#read in the tidy data from results
 Roughy <- read_csv("Results/OREastern_tidy2019.csv")
-Roughy1 <- data.frame(Roughy) %>% 
-  select(Area = Area_MS, year,sex, Length= SLadj_cm)
 
+#rename columns
 Roughy <- Roughy %>% 
   mutate(Length = SLadj_cm) %>% 
-  mutate(Area = Area_MS)
+  mutate(Area = Area_MS) %>% 
+  drop_na(Area) %>% 
+  drop_na(Length) %>% 
+  drop_na(sex)
 
-Roughy1 <- data.frame(Roughy) %>% 
+Roughy1 <- (Roughy) %>% 
   select(Area = Area_MS, year,sex, Length= SLadj_cm)
 
 
 Roughycheck <- Roughy %>% 
-  filter(year == 2019) %>% 
-  group_by(year,Length) %>% 
-  summarise(n()) %>% 
+  filter(year == 2019)%>% 
+  dplyr::group_by(year,Length) %>% 
+  dplyr::summarise(n()) %>% 
 glimpse()
 
-# summarise to include #mean SL for Area and sex by year
-Roughy1_group <- Roughy %>% 
-  drop_na(Area_MS) %>% 
-  group_by(year,Area_MS,sex) %>% 
-  summarise(SLadj_cm_mean = mean(SLadj_cm),
-            sdSL = sd(SLadj_cm, na.rm = TRUE),
-            n(),
-            seSL = sd(SLadj_cm) / sqrt(n())
-            ) %>% 
-  rename(Length = SLadj_cm_mean) %>% 
-glimpse()
+# summary stats to create confidence intervals
+Roughy_sumstats <- Roughy1 %>% 
+  dplyr::group_by(year, Area, sex) %>% 
+  dplyr::summarise(Avg_Length = mean(Length),
+            n= n(),
+            sd = sd(Length, na.rm = TRUE),
+            se = sd(Length) / sqrt(n()))
+
+#confidence inervals
+# ci = avg +- z * se
+#z score = qnorm(0.975) b/c 2.5% (0.025) on both tails
+Roughy_groupci  <- Roughy_sumstats %>% 
+  select(year, Area,sex,Avg_Length,n,sd) %>% 
+  mutate(error = qnorm(0.975) * sd/sqrt(n))
 
 
+#summarise data: using summarySE package Rmisc
+#summarySE provides the standard deviation, 
+#standard error of the mean, 
+#and a (default 95%) confidence interval
+
+roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","Area","sex"))
 
 # summarise plot to have means potted with all data by Area
 ggplot(data = Roughy,
@@ -45,14 +57,12 @@ ggplot(data = Roughy,
   geom_line(data=Roughy1_group, size = 1)+
   facet_wrap(~Area)
 
+roughy2_sum
 
 #average SL by Area and sex
-ggplot(data = Roughy1_group,
-       mapping = aes(x = year,
-                     y = Length,
-                     shape =sex,
-                     colour = Area_MS,
-       )) +
+ggplot(roughy2_sum,
+       aes(x = year,y = Length, shape =sex,colour = Area)) +
+  geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci))+
   geom_point()+
   geom_line()+
   scale_y_continuous(breaks = seq(30,38,1),limits = c(30,38))+
