@@ -194,7 +194,9 @@ ORMeasuresShot <- left_join(Biologicals_3, Shot_1,by= c("Survey","Shot")) %>%
   mutate(Area_MS = ifelse(Area.x =="U",Area.y,Area.x)) %>% 
   filter(Area_MS != "U")
 
-ORMeasuresShot
+ORMeasuresShot1<- ORMeasuresShot %>% 
+  select(zone=zone.x, year,Area_MS, Survey, Shot, sex, stage, weight_kg,SLadj_cm,Otoliths,mark, vessel,Date,
+         `Shot type`,lat1,long1,ShotWeight_kg)
 
 MScheck <- ORMeasuresShot %>%
   #filter(year==2013) %>% 
@@ -219,18 +221,20 @@ MSCheck_1 <- left_join(Biocheck3,MScheck, by ="Shot")
 Biologicals_3
 Shot_1
 
-#Tidy data frame (38706)
+#Tidy data frame (36678)
 
+#Tiday data from 87 to 2019
+write.csv(ORMeasuresShot1,"Results/OREastern_Tidy_87to2019.csv")
 
-
+#Tidy data from 87 to 2016 for DataSchool
 OREastern87to2016 <- ORMeasuresShot %>% 
   filter(year != 2019)
-
 write.csv(OREastern87to2016,"Results/OR87to2016.csv")
 
 
-write.csv(ORMeasuresShot,"Results/OREastern_tidy2019.csv")
-
+d2019 <- read.csv("Results/OREastern_Tidy_87to2019.csv")%>% 
+  filter(year==2019) %>% 
+  select(year,Area_MS,ShotWeight_kg)
 
 test <- ORMeasuresShot %>% 
   filter(year==1990) %>% 

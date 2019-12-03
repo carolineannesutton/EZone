@@ -8,16 +8,14 @@ library(dplyr)
 #read in the tidy data from results
 Roughy <- read_csv("Results/OREastern_tidy2019.csv")
 
-#rename columns
-Roughy <- Roughy %>% 
+#rename and select relevant columns
+Roughy1 <- Roughy %>% 
   mutate(Length = SLadj_cm) %>% 
   mutate(Area = Area_MS) %>% 
   drop_na(Area) %>% 
   drop_na(Length) %>% 
-  drop_na(sex)
-
-Roughy1 <- (Roughy) %>% 
-  select(Area = Area_MS, year,sex, Length= SLadj_cm)
+  drop_na(sex) %>% 
+  select(Area, year, sex, Length)
 
 
 Roughycheck <- Roughy %>% 

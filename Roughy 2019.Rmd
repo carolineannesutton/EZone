@@ -1,0 +1,71 @@
+---
+title: "2019 Roughy Survey Figures and Tables"
+author: "Caroline Sutton"
+date: "03/12/2019"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo=TRUE,
+  warning = FALSE,
+  message = FALSE,
+  results = 'asis',
+  fig.align = 'center')
+#load libraries
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(Rmisc)
+library(dplyr)
+
+#read in tidy data from results folder
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
+
+
+data#remame and select columns
+Roughy1 <- Roughy %>% 
+  mutate(Length = SLadj_cm) %>% 
+  mutate(Ground = Area_MS) %>% 
+  drop_na(Ground) %>% 
+  drop_na(Length) %>% 
+  drop_na(sex) %>% 
+  select(Ground, year, sex, Length,ShotWeight_kg)
+```
+
+## Summary data: 1987 to 2019 
+
+```{r mytable, out.width='100%', echo = T}
+Data_summary <- Roughy1 %>% 
+  dplyr::group_by(year, Ground,sex) %>% 
+  dplyr::summarise(n= n())
+
+Data_summary <- spread(Data_summary, key = year,value = n)
+
+
+knitr::kable(tail(Data_summary, n = 5), format = "html", caption = "Summary data: Orange Roughy Eastern Zone Spawning Survey Data by, year, Area, sex") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+```
+
+## Figures
+### Table 2.3
+3  Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2013 (* no fish collected from these shots
+
+```{r table, out.width='100%', echo = T} 
+OR2019 <- Roughy %>% 
+  filter(year == 2019) %>% 
+  mutate(Ground = Area_MS) %>% 
+  select(Ground,Shot,Date, ShotWeight_kg)
+
+  
+```
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
