@@ -6,28 +6,28 @@ library(Rmisc)
 library(dplyr)
 
 #read in the tidy data from results
-Roughy <- read_csv("Results/OREastern_tidy2019.csv")
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv")
 
 #rename and select relevant columns
 Roughy1 <- Roughy %>% 
   mutate(Length = SLadj_cm) %>% 
-  mutate(Area = Area_MS) %>% 
-  drop_na(Area) %>% 
+  mutate(Ground = Area_MS) %>% 
+  drop_na(Ground) %>% 
   drop_na(Length) %>% 
   drop_na(sex) %>% 
-  select(Area, year, sex, Length)
+  select(Ground, year, Shot, Date,sex, Length,ShotWeight_kg)
 
 
 Roughycheck <- Roughy %>% 
   filter(year == 1996)%>% 
-  dplyr::group_by(Area,sex) %>% 
+  dplyr::group_by(Area_MS,sex) %>% 
   dplyr::summarise(n()) %>% 
 glimpse()
 
 
 # summary stats to create confidence intervals
 Roughy_sumstats <- Roughy1 %>% 
-  dplyr::group_by(year, Area, sex) %>% 
+  dplyr::group_by(year, Ground, sex) %>% 
   dplyr::summarise(Avg_Length = mean(Length),
             n= n(),
             sd = sd(Length, na.rm = TRUE),
@@ -36,7 +36,7 @@ Roughy_sumstats <- Roughy1 %>%
 # ci = avg +- z * se
 #z score = qnorm(0.975) b/c 2.5% (0.025) on both tails
 Roughy_groupci  <- Roughy_sumstats %>% 
-  select(year, Area,sex,Avg_Length,n,sd) %>% 
+  select(year, Ground,sex,Avg_Length,n,sd) %>% 
   mutate(error = qnorm(0.975) * sd/sqrt(n))
 
 
@@ -46,27 +46,28 @@ Roughy_groupci  <- Roughy_sumstats %>%
 #standard error of the mean, 
 #and a (default 95%) confidence interval
 
-roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","Area","sex"))
+roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","Ground","sex"))
 
 # summarise plot to have means potted with all data by Area
-ggplot(data = Roughy,
+ggplot(data = Roughy1,
        mapping = aes(x = year,
                      y = Length,
                      colour = sex)) +
   geom_jitter(width = .5, size = 1)+
-  geom_line(data=Roughy1_group, size = 1)+
-  facet_wrap(~Area)
+  geom_line(data=roughy2_sum, size = 1)+
+  facet_wrap(~Ground)
+
 
 roughy2_sum
 
 #average SL by Area and sex
 pd <- position_dodge(0.6) # move position horizontally b/c of overlap
-ggplot(roughy2_sum, aes(x = year,y = Length, shape = Area, colour = sex)) +
+ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = sex)) +
   geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
                 width =.7, position = pd) +
   geom_point( position = pd, size = 2)+
   geom_line(position = pd) +
-  xlab("Year")+
+  xlab("Year, Eastern Zone, July spawning population")+
   ylab("Average Standard Length (cm)")+
   scale_y_continuous(breaks = seq(30,38,1),limits = c(30,38))+
   scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
