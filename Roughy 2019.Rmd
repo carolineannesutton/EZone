@@ -21,6 +21,8 @@ library(scales)
 library(ggpubr)
 library(Rmisc)
 library(dplyr)
+library(devEMF)
+
 
 #read in tidy data from results folder
 Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
@@ -97,6 +99,24 @@ Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = 
         legend.title = element_text(size = 9, margin = margin(t=.05)),
         legend.spacing.y =unit(.05,'cm'))
 plot(Avg_SL)
+ggsave("Figures/AVg_SL.emf")
+```
+#### Figure 2.2
+```{r myfig}
+
+OR2019 %>% # This is the ONE
+  group_by(Ground, sex) %>% 
+  add_tally() %>% 
+  group_by(Ground, sex, Length) %>% 
+  dplyr::summarise(prop = n() / n[1]) %>% 
+  ggplot(aes(Length, prop, fill = sex)) +
+  geom_col(position = "identity", alpha = 0.6) +
+  scale_x_continuous(breaks = seq(28,46,2),limits = c(28,46))+
+  facet_wrap(~Ground)+
+   theme_bw()+
+  ylab("proportion")+
+  xlab("Length (cm)")+
+  theme(legend.position = "bottom")
 ```
 #### Figure 2.2a
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as total counts of females (F) and males (M) within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
@@ -116,7 +136,7 @@ ggplot(OR2019, aes(Length, fill = sex)) +
   ylab("count")+
   xlab("Length (cm)")
 ```
-### Figure2.2b
+#### Figure2.2b
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as proporation  contribution to each Length categrory for female fish (F) and male fish (M) at each Ground. Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
 ```{r myfig3} 
   
@@ -135,7 +155,7 @@ Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning populat
     
 ```
 
-### Figure 2.2c Creating LF using percentages
+#### Figure 2.2c Creating LF using percentages
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as proporation of number of females (F) and males (M) relative to the total catch within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
 ```{r myfig}   
 OR2019 <- OR2019 %>% 
@@ -161,7 +181,7 @@ OR2019mean <- OR2019 %>%
     xlab("Length (cm)") +
     scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44)) +
     #scale_y_continuous(breaks = seq(0,0.25,.05), limits = c(0,0.25))+
-    geom_vline(data=OR2019mean, aes(xintercept=mean,  colour=sex, label = mean),
+    geom_vline(data=OR2019mean, aes(xintercept=mean,  colour=sex),
              linetype="dashed", size=.5)+
     facet_wrap(~Ground)+
     theme(legend.position = "bottom")
@@ -177,41 +197,91 @@ OR2019mean <- OR2019 %>%
 ```
 
 
-
-smoothed length frequency
+#### Figure 2.2d
+smoothed length frequency using geom_density which isn't proporation 
 ```{r myfig4}
 
-sum2019<- OR2019 %>% 
-  dplyr::group_by( Ground,sex) %>% 
-  dplyr::summarise(mean= mean(Length))
-
-                 
 ggplot(OR2019,aes(x=Length, colour= sex),group = Ground)+
   geom_density()+
   facet_grid(~Ground)+
   scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
-  geom_vline(data=sum2019, aes(xintercept=mean,  colour=sex, group = Ground),
+  geom_vline(data=OR2019mean, aes(xintercept=mean,  colour=sex, group = Ground),
                linetype="dashed", size=1)+
-  ylab("proportion of total fish for each Ground")+
+  ylab("density")+
   xlab("Length(cm)")+
 theme_bw()
+
 ```
+#### figure2.2explore
+checking Alex's method for 2019
+```{r}
+OR2016 <- filter(Roughy1,year==2016)
+
+ggplot(OR2016,aes(x=Length,fill=sex))+
+  geom_histogram(aes(y=stat(density)),binwidth = 1)+
+  facet_grid(~Ground)
+
+ggplot(OR2016,aes(x=Length, colour= sex),group = Ground)+
+  geom_density()+
+  facet_grid(~Ground)
+
+ggplot(OR2016, aes(Length, fill = sex)) +
+  geom_histogram(binwidth=1, position = "identity",alpha =.7)+
+  facet_grid(~Ground)
+
+OR2016 %>% # This is the ONE
+  group_by(Ground, sex) %>% 
+  add_tally() %>% 
+  group_by(Ground, sex, Length) %>% 
+  dplyr::summarise(prop = n() / n[1]) %>% 
+  ggplot(aes(Length, prop, fill = sex)) +
+  geom_col(position = "identity", alpha = 0.6) +
+  facet_wrap(~Ground)
+```
+
 ### Figure2.3 Cummulative frequency
 
 ```{r}
-OR2019c<-OR2019 %>% 
-   group_by(Ground, sex,Length) %>% 
-  dplyr:: summarise(Length = unique(Length),cum = ecdf(Length)(unique(Length)))
+OR2019 <- OR2019 %>% 
+  mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
+  group_by(GbyS) %>% 
+  mutate(sumsum = cumsum(Length))
 
 
-ggplot(OR2019,aes(x=Length, colour= sex),group = Ground)+
-  geom_density()+
-  facet_grid(~Ground)+
+#using stat_ecdf to calculate the cummulative frequency
+
+ggplot(OR2019,aes(x=Length, colour= sex)) +
+   stat_ecdf(geom = "smooth")+
   scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
-  geom_vline(data=sum2019, aes(xintercept=mean,  colour=sex, group = Ground),
-               linetype="dashed", size=1)+
-  ylab("proportion of total fish for each Ground")+
-  xlab("Length(cm)")+
-theme_bw()
+  facet_wrap(~Ground)+
+  ylab("cummulative frequency")+
+  xlab("Length (cm)")+
+  theme_bw()+
+  theme(legend.position = "bottom")
+  
 ```
+### Table 2 4 summarise all data by counts and mode  
 
+Number of fish measured and mode for standard lengths for males and females measured at St Helens and St Patricks from 1987 to 2013, updated from Kloser et al. 2012. 
+```{r table}
+
+#create function to find the mode
+Mode <- function(x) {
+    if (is.numeric(x)) {
+        x_table <- table(x)
+        return(as.numeric(names(x_table)[which.max(x_table)]))
+    }
+}
+
+
+# get mode of Length for data by year, Ground and sex  
+Dataformode<- Roughy1 %>% 
+  mutate(GbyS= paste(Ground,sex,sep = "_")) %>% 
+  dplyr::group_by(year, GbyS) %>% #group
+  dplyr::summarise(mode = Mode(x= Length), n= n())  # apply Mode function
+
+library(data.table) ## v >= 1.9.6
+Table_mode <- dcast(setDT(Dataformode), year ~ GbyS, value.var = c("n", "mode"))
+
+
+```
