@@ -30,7 +30,7 @@ Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotW
 
 #remame and select columns
 Roughy1 <- Roughy %>% 
-  mutate(Length = SLadj_cm) %>% 
+  mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
   mutate(Ground = Area_MS) %>% 
   drop_na(Ground) %>% 
   drop_na(Length) %>% 
@@ -55,17 +55,17 @@ knitr::kable(tail(Data_summary, n = 5), format = "html", caption = "Summary data
 
 ## Figures: Biological data 
 
-#### Table 2.3
+### Table 2.3
 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2013 (* no fish collected from these shots. Note that bycatch data is not available
 
-```{r table, out.width='100%', echo = T} 
+```{r table2.3, out.width='100%', echo = T} 
 OR2019 <- Roughy1 %>% 
   filter(year == 2019)
 OR2019_sum <- OR2019 %>% 
-  dplyr::group_by(Ground,Shot,Date, ShotWeight_kg,sex) %>% 
+  dplyr::group_by(Ground,Shot,Date, 'Shot Weight (kg)' = ShotWeight_kg,sex) %>% 
   dplyr::summarise(num_rows = n()) %>% 
   spread(sex,num_rows) %>% 
-  mutate(`total measured` = F + M)
+  mutate(`number of fish` = F + M)
 
 
 
@@ -74,7 +74,7 @@ knitr::kable(head(OR2019_sum, n=14), format = "html", caption = "Table 2.3 Summa
   kableExtra::scroll_box(width  = "100%")
 
 ```
-#### Figure 2.1 
+### Figure 2.1 
 Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2016. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
 ```{r myfig1, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 
@@ -90,7 +90,7 @@ Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = 
   geom_line(position = pd) +
   xlab("Year, Eastern Zone, July spawning population")+
   ylab("Average Standard Length (cm)")+
-  scale_y_continuous(breaks = seq(27,38,1),limits = c(27,38))+
+  scale_y_continuous(breaks = seq(26,38,1),limits = c(26,38))+
   scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
   theme_bw()+
   theme(legend.position = c(.95, .05),
@@ -101,8 +101,11 @@ Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = 
 plot(Avg_SL)
 ggsave("Figures/AVg_SL.emf")
 ```
-#### Figure 2.2
-```{r myfig}
+### Figure 2.2
+Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as total counts of females (F) and males (M) within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
+
+
+```{r myfig2}
 
 OR2019 %>% # This is the ONE
   group_by(Ground, sex) %>% 
@@ -117,11 +120,13 @@ OR2019 %>% # This is the ONE
   ylab("proportion")+
   xlab("Length (cm)")+
   theme(legend.position = "bottom")
+
+
 ```
-#### Figure 2.2a
+### Figure 2.2a
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as total counts of females (F) and males (M) within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
 
-```{r myfig2}
+```{r myfig2a}
 #filter(Roughy, Area_MS == "St Helens") %>% 
   
 ggplot(OR2019, aes(Length, fill = sex)) +
@@ -136,9 +141,9 @@ ggplot(OR2019, aes(Length, fill = sex)) +
   ylab("count")+
   xlab("Length (cm)")
 ```
-#### Figure2.2b
+### Figure2.2b
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as proporation  contribution to each Length categrory for female fish (F) and male fish (M) at each Ground. Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
-```{r myfig3} 
+```{r myfig2b} 
   
   ggplot(OR2019, aes(x= Length, fill = sex)) +
   geom_histogram(aes(y=c(..count..[..group..==1]/sum(..count..[..group..==1]),
@@ -155,9 +160,9 @@ Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning populat
     
 ```
 
-#### Figure 2.2c Creating LF using percentages
+### Figure 2.2c Creating LF using percentages
 Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as proporation of number of females (F) and males (M) relative to the total catch within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
-```{r myfig}   
+```{r myfig2c}   
 OR2019 <- OR2019 %>% 
   mutate(Length = round(Length)) %>% #round length
   group_by(Ground,sex,Length) %>%  
@@ -175,7 +180,7 @@ OR2019mean <- OR2019 %>%
   dplyr::summarise(mean = mean(Length))
 
   ggplot(OR2019_prop,aes(x=Length, y= prop, colour = sex))+ # create the LF plot 
-    geom_point(size = 1)+
+    geom_line(size = 1)+
     geom_smooth()+
     ylab("proportion of fish")+
     xlab("Length (cm)") +
@@ -197,9 +202,9 @@ OR2019mean <- OR2019 %>%
 ```
 
 
-#### Figure 2.2d
+### Figure 2.2d
 smoothed length frequency using geom_density which isn't proporation 
-```{r myfig4}
+```{r myfig2d}
 
 ggplot(OR2019,aes(x=Length, colour= sex),group = Ground)+
   geom_density()+
@@ -212,9 +217,9 @@ ggplot(OR2019,aes(x=Length, colour= sex),group = Ground)+
 theme_bw()
 
 ```
-#### figure2.2explore
+### figure2.2explore
 checking Alex's method for 2019
-```{r}
+```{r myfig2e}
 OR2016 <- filter(Roughy1,year==2016)
 
 ggplot(OR2016,aes(x=Length,fill=sex))+
@@ -263,15 +268,66 @@ ggplot(OR2019,aes(x=Length, colour= sex)) +
 ### Table 2 4 summarise all data by counts and mode  
 
 Number of fish measured and mode for standard lengths for males and females measured at St Helens and St Patricks from 1987 to 2013, updated from Kloser et al. 2012. 
-```{r table}
+```{r table 4}
 
 #create function to find the mode
-Mode <- function(x) {
-    if (is.numeric(x)) {
-        x_table <- table(x)
-        return(as.numeric(names(x_table)[which.max(x_table)]))
-    }
-}
+library(reshape2)
+library(plyr)
+
+?melt
+?dcast
+#combine Ground and Sex columns 
+Roughy1 <- Roughy1 %>% 
+  mutate(GbyS = paste(Ground,sex, sep = "_")) %>% 
+  view(Roughy1)
+
+#metl data in preparation for pivot
+Roughy1_melt <- melt(Roughy1, id = c("year","Ground", "sex","GbyS"), measure= "Length", value.name = "length") %>%
+  view(Roughy1_melt)
+#pivot table using cast
+
+Roughy1_pivot <- dcast(Roughy1
+                       , year ~ sex+Ground, margins = FALSE, fun=list(sum,mean), value.var = "length") %>% 
+view(Roughy1_pivot)
+
+#combine Ground and Sex columns 
+Roughy1 <- Roughy1 %>% 
+  mutate(GbyS = paste(Ground,sex, sep = "_")) %>% 
+  view(Roughy1)
+
+#create mode table
+Roughy_mode <- Roughy1 %>% 
+  dplyr::group_by(year,GbyS) %>%
+  dplyr::summarise(Mode = Mode(x = Length)) %>% 
+  spread(GbyS,Mode) %>% 
+  view(Roughy_mode)
+
+#create count table
+Roughy_nos <- Roughy1 %>% 
+  dplyr::group_by(year,GbyS) %>%
+  dplyr::summarise(Numbers = n())%>% 
+  spread(GbyS,Numbers) %>% 
+  view(Roughy_nos)
+
+
+  Table<- cbind(Roughy_mode,Roughy_nos) %>% 
+    view(Table)
+ 
+  
+  ?join
+
+
+
+
+
+
+  .```
+
+#Mode <- function(x) {
+#       x_table <- table(x)
+#        return(as.numeric(names(x_table)[which.max(x_table)]))
+#    }
+#}
 
 
 # get mode of Length for data by year, Ground and sex  
