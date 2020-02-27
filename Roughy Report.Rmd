@@ -1,12 +1,17 @@
 ---
-title: "2019 Orange Roughy Eastern Zone Spawaning Survey Figures and Tables"
+title: "Oragne Roughy Eastern Zone Survey Data"
+subtitle: "Bioloigical Data from 1987 to 2016"
 author: "Caroline Sutton"
-date: "03/12/2019"
-output:
-  html_document:
-    code_folding: hide
----
+affiliation: "CSIRO Oceans and Atmosphere"
+photo: resources/img/photo.jpg
 
+short_title: Orange Roughy, *Hoplostethus atlanticus*
+
+output: 
+  DSreport::project_summary:
+    code_folding: show
+
+---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   echo=TRUE,
@@ -14,7 +19,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   results = 'asis',
   fig.align = 'center')
-#load libraries
+
+#Load libraries
 library(tidyverse)
 library(ggplot2)
 library(scales)
@@ -40,8 +46,15 @@ Roughy1 <- Roughy %>%
   drop_na(sex) %>% 
   select(Ground, year, Shot, Date,sex, Length,ShotWeight_kg)
 ```
+# Introduction
+Summary Data, Tables and Figures for Eastern Zone Roughy Survey 2019
 
-## Summary data: 1987 to 2019 
+
+## Table and Figures
+
+**Tables**
+---
+
 
 ```{r mytable, out.width='100%', echo = T}
 Data_summary <- Roughy1 %>% 
@@ -51,15 +64,14 @@ Data_summary <- Roughy1 %>%
 Data_summary <- spread(Data_summary, key = year,value = n)
 
 
-knitr::kable(tail(Data_summary, n = 5), format = "html", caption = "Summary data: Orange Roughy Eastern Zone Spawning Survey Data by, year, Area, sex") %>% 
+knitr::kable(tail(Data_summary, n = 5), format = "html", caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
+
 ```
 
-## Figures: Biological data 
-
-### Table 2.3
-Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2013 (* no fish collected from these shots. Note that bycatch data is not available
+## Table 2.3
+Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019 (* no fish collected from these shots. Note that bycatch data were not reported
 
 ```{r table2.3, out.width='100%', echo = T} 
 OR2019 <- Roughy1 %>% 
@@ -75,16 +87,20 @@ OR2019_sum <- OR2019 %>%
 knitr::kable(head(OR2019_sum, n=14), format = "html", caption = "Table 2.3 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width  = "100%")
-
 ```
-### Figure 2.1 
+--
+
+
+## Figure 2.1 
 Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2016. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
-```{r myfig1, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r myfig2.1, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 #average SL by Area and sex
 
-roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","Ground","sex"))
+roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","Ground","sex")) 
 
+  
 pd <- position_dodge(0.6) # move position horizontally b/c of overlap
+
 Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = sex)) +
   geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
                 width =.7, position = pd) +
@@ -104,28 +120,8 @@ plot(Avg_SL)
 ggsave("Figures/AVg_SL.emf")
 
 ```
-#### Figure 2.2
-```{r myfig}
-OR2019 %>% # This is the ONE
-  group_by(Ground, sex) %>% 
-  add_tally() %>% 
-  group_by(Ground, sex, Length) %>% 
-  dplyr::summarise(prop = n() / n[1]) %>% 
-  ggplot(aes(Length, prop, fill = sex)) +
-  geom_col(position = "identity", alpha = 0.6) +
-  scale_x_continuous(breaks = seq(28,46,2),limits = c(28,46))+
-  facet_wrap(~Ground)+
-   theme_bw()+
-  ylab("proportion")+
-  xlab("Length (cm)")+
-  theme(legend.position = "bottom")
-```
 ### Figure 2.2
-Length frequencies (cm) for the 2019 orange roughy Eastern Zone spawning population for males and females  at St Helens and St Patricks.  Data presented as total counts of females (F) and males (M) within each spawning ground.  Samples numbers are as follows: St Helens F = 856, St Helens M = 438, St Patricks F = 526 and St Patricks M = 689. Vertical line showing the median for all data.
-
-
-```{r myfig2}
-
+```{r myfig2.2}
 OR2019 %>% # This is the ONE
   group_by(Ground, sex) %>% 
   add_tally() %>% 
@@ -139,9 +135,8 @@ OR2019 %>% # This is the ONE
   ylab("proportion")+
   xlab("Length (cm)")+
   theme(legend.position = "bottom")
-
-
 ```
+
 ### Figure2.3 Cummulative frequency
 
 ```{r}
@@ -163,44 +158,10 @@ ggplot(OR2019,aes(x=Length, colour= sex)) +
   theme(legend.position = "bottom")
   
 ```
-### Table 2 4 summarise all data by counts and mode  
-Number of fish measured and mode for standard lengths for males and females measured at St Helens and St Patricks from 1987 to 2013, updated from Kloser et al. 2012. 
-```{r mytable2.4, out.width='100%', echo = T}
-Roughy1 <- Roughy1 %>% #combine Ground and Sex columns 
-  mutate(GbyS = paste(Ground,sex, sep = "_"))
-  
-#create modes
-
-#create function to find the mode
-Mode <- function(x) {
-    if (is.numeric(x)) {
-        x_table <- table(x)
-        return(as.numeric(names(x_table)[which.max(x_table)]))
-        }
-}
-Roughy_mode <- Roughy1 %>% 
-  dplyr::group_by(year,GbyS) %>%
-  dplyr::summarise(Mode = Mode(x = Length))%>%
-  spread(GbyS, Mode) 
-#create counts
-Roughy_nos <- Roughy1 %>% 
-  dplyr::group_by(year, GbyS) %>%
-  dplyr::summarise(Numbers = n())%>%
-  spread(GbyS, Numbers)
-
-#bind the mode and counts
-R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
-  select(-6)#remove the year1 colomn
-
-  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
- 
-knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode"), format = "html", caption = "Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
-  kableExtra::kable_styling("striped") %>%
-  add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
-    add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
-    kableExtra::scroll_box(width = "100%")
-
-```
 
 
 
+
+# My Data School Experience
+
+Data School has been a very useful and rewarding experience and has changed the way I do my job. I can now manage and document my data wrangling which was previously recorded in notebooks and reports.  This has been hugely transformative as much of my job involves collating data from different researchers and projects with varied field and data management practices. I am also very grateful for the encouragement, patience and kindness of the Data School Focus team who made the learning process fun and manageable.
