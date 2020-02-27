@@ -22,6 +22,7 @@ library(ggpubr)
 library(Rmisc)
 library(dplyr)
 library(devEMF)
+library(tidyr)
 
 
 #read in tidy data from results folder
@@ -303,65 +304,39 @@ ggplot(OR2019,aes(x=Length, colour= sex)) +
 Number of fish measured and mode for standard lengths for males and females measured at St Helens and St Patricks from 1987 to 2013, updated from Kloser et al. 2012. 
 ```{r table 4}
 
-#create function to find the mode
-library(reshape2)
-library(plyr)
-
-?melt
-?dcast
 #combine Ground and Sex columns 
 Roughy1 <- Roughy1 %>% 
   mutate(GbyS = paste(Ground,sex, sep = "_")) %>% 
   view(Roughy1)
 
-#metl data in preparation for pivot
-Roughy1_melt <- melt(Roughy1, id = c("year","Ground", "sex","GbyS"), measure= "Length", value.name = "length") %>%
-  view(Roughy1_melt)
-#pivot table using cast
-
-Roughy1_pivot <- dcast(Roughy1
-                       , year ~ sex+Ground, margins = FALSE, fun=list(sum,mean), value.var = "length") %>% 
-view(Roughy1_pivot)
-
-#combine Ground and Sex columns 
-Roughy1 <- Roughy1 %>% 
-  mutate(GbyS = paste(Ground,sex, sep = "_")) %>% 
-  view(Roughy1)
-
-#create mode table
+#create modes
 Roughy_mode <- Roughy1 %>% 
   dplyr::group_by(year,GbyS) %>%
-  dplyr::summarise(Mode = Mode(x = Length)) %>% 
-  spread(GbyS,Mode) %>% 
+  dplyr::summarise(Mode = Mode(x = Length))%>%
+  spread(GbyS, Mode) %>% 
   view(Roughy_mode)
-
-#create count table
+#create counts
 Roughy_nos <- Roughy1 %>% 
-  dplyr::group_by(year,GbyS) %>%
-  dplyr::summarise(Numbers = n())%>% 
-  spread(GbyS,Numbers) %>% 
+  dplyr::group_by(year, GbyS) %>%
+  dplyr::summarise(Numbers = n())%>%
+  spread(GbyS, Numbers) %>%
   view(Roughy_nos)
 
-
-  Table<- cbind(Roughy_mode,Roughy_nos) %>% 
-    view(Table)
+#bind the mode and counts
+R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
+  select(-6)  #remove the year1 colomn
+  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)] %>% # order the columns
+  view(R_Mode_Count_order)
  
-  
-  ?join
 
+knitr::kable(tail(R_Mode_Count, n = 17), format = "html", caption = "Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
+  kableExtra::kable_styling("striped") %>%
+    add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
+    add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
+    kableExtra::scroll_box(width = "100%")
 
+```
 
-
-
-
-  .```
-
-#Mode <- function(x) {
-#       x_table <- table(x)
-#        return(as.numeric(names(x_table)[which.max(x_table)]))
-#    }
-#}
-=======
 
 Number of fish measured and mode for standard lengths for males and females measured at St Helens and St Patricks from 1987 to 2013, updated from Kloser et al. 2012. 
 ```{r table}
