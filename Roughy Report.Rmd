@@ -1,15 +1,10 @@
 ---
-title: "Oragne Roughy Eastern Zone Survey Data"
-subtitle: "Bioloigical Data from 1987 to 2016"
+title: "2019 Orange Roughy Eastern Zone Spawaning Survey Figures and Tables"
 author: "Caroline Sutton"
-affiliation: "CSIRO Oceans and Atmosphere"
-photo: resources/img/photo.jpg
-
-short_title: Orange Roughy, *Hoplostethus atlanticus*
-
-output: 
-  DSreport::project_summary:
-    code_folding: show
+date: "03/12/2019"
+output:
+  html_document:
+    code_folding: hide
 
 ---
 ```{r setup, include=FALSE}
@@ -44,7 +39,7 @@ Roughy1 <- Roughy %>%
   drop_na(Ground) %>% 
   drop_na(Length) %>% 
   drop_na(sex) %>% 
-  select(Ground, year, Shot, Date,sex, Length,ShotWeight_kg)
+  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg)
 ```
 # Introduction
 Summary Data, Tables and Figures for Eastern Zone Roughy Survey 2019
@@ -88,11 +83,9 @@ knitr::kable(head(OR2019_sum, n=14), format = "html", caption = "Table 2.3 Summa
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width  = "100%")
 ```
---
-
 
 ## Figure 2.1 
-Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2016. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
+Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2019. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
 ```{r myfig2.1, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 #average SL by Area and sex
 
@@ -101,12 +94,12 @@ roughy2_sum <- summarySE(Roughy1, measurevar = "Length", groupvars = c("year","G
   
 pd <- position_dodge(0.6) # move position horizontally b/c of overlap
 
-Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = sex)) +
+f2.1 <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = sex)) +
   geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
                 width =.7, position = pd) +
   geom_point( position = pd, size = 2)+
   geom_line(position = pd) +
-  xlab("Year, Eastern Zone, July spawning population")+
+  xlab("Eastern Zone Spawning Population by year for July")+
   ylab("Average Standard Length (cm)")+
   scale_y_continuous(breaks = seq(26,38,1),limits = c(26,38))+
   scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
@@ -116,18 +109,21 @@ Avg_SL <- ggplot(roughy2_sum, aes(x = year,y = Length, shape = Ground, colour = 
         legend.text =element_text(size=8),
         legend.title = element_text(size = 9, margin = margin(t=.05)),
         legend.spacing.y =unit(.05,'cm'))
-plot(Avg_SL)
-ggsave("Figures/AVg_SL.emf")
+plot(f2.1)
+ggsave("Figures/f2.1.emf")
 
 ```
-### Figure 2.2
+
+## Figure 2.2
+Standard Length by sex and ground
 ```{r myfig2.2}
-OR2019 %>% # This is the ONE
+OR_LF <- OR2019 %>% # This is the ONE
   group_by(Ground, sex) %>% 
   add_tally() %>% 
   group_by(Ground, sex, Length) %>% 
-  dplyr::summarise(prop = n() / n[1]) %>% 
-  ggplot(aes(Length, prop, fill = sex)) +
+  dplyr::summarise(prop = n() / n[1])
+
+f2.2 <- ggplot(OR_LF, aes(Length, prop, fill = sex)) +
   geom_col(position = "identity", alpha = 0.6) +
   scale_x_continuous(breaks = seq(28,46,2),limits = c(28,46))+
   facet_wrap(~Ground)+
@@ -135,20 +131,57 @@ OR2019 %>% # This is the ONE
   ylab("proportion")+
   xlab("Length (cm)")+
   theme(legend.position = "bottom")
+plot(f2.2)
+ggsave(filename = "Figures/f2.2.emf")
 ```
 
-### Figure2.3 Cummulative frequency
 
-```{r}
-OR2019 <- OR2019 %>% 
+## Table 2.4 
+Mode and Numbers of fish by Year, Ground, Sex
+```{r Table2.4}
+Roughy1 <- Roughy1 %>% 
   mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
   group_by(GbyS) %>% 
   mutate(sumsum = cumsum(Length))
 
 
+#create function to find the mode
+Mode <- function(x) {
+    if (is.numeric(x)) {
+        x_table <- table(x)
+        return(as.numeric(names(x_table)[which.max(x_table)]))
+        }
+}
+Roughy_mode <- Roughy1 %>% 
+  dplyr::group_by(year,GbyS) %>%
+  dplyr::summarise(Mode = Mode(x = Length))%>%
+  spread(GbyS, Mode) 
+#create counts
+Roughy_nos <- Roughy1 %>% 
+  dplyr::group_by(year, GbyS) %>%
+  dplyr::summarise(Numbers = n())%>%
+  spread(GbyS, Numbers)
+
+#bind the mode and counts
+R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
+  select(-6)#remove the year1 colomn
+
+  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
+ 
+knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode"), format = "html", caption = "Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
+  kableExtra::kable_styling("striped") %>%
+  add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
+    add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
+    kableExtra::scroll_box(width = "100%")
+```
+  
+## Figure 2.4
+Cummunlative Frequency
+```{r myfig2.3}
+
 #using stat_ecdf to calculate the cummulative frequency
 
-ggplot(OR2019,aes(x=Length, colour= sex)) +
+f2.3 <- ggplot(OR2019,aes(x=Length, colour= sex)) +
    stat_ecdf(geom = "smooth")+
   scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
   facet_wrap(~Ground)+
@@ -156,10 +189,62 @@ ggplot(OR2019,aes(x=Length, colour= sex)) +
   xlab("Length (cm)")+
   theme_bw()+
   theme(legend.position = "bottom")
+plot(f2.3)
+ggsave(filename = "Figures/f2.3.emf")
   
 ```
 
+## Figure 2.4
+Average Standard Length (cm) by shot for males and females for 2019
+```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+#average SL by Area and sex
 
+OR2019_sum <- summarySE(OR2019, measurevar = "Length", groupvars = c("Shot","Date","Ground","sex")) %>% 
+  mutate(Shot = as.character(Shot))
+
+  
+pd <- position_dodge(0) # move position horizontally b/c of overlap
+
+f2.4 <- ggplot(OR2019_sum, aes(x = reorder(Shot, sort(as.numeric(Shot))),y = Length, colour = sex)) +
+  geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+ # geom_line(position = pd) +
+  xlab("Shot Number")+
+  ylab("Average Standard Length (cm)")+
+  scale_y_continuous(breaks = seq(30,38,1),limits = c(30,38))+
+  theme_bw()+
+  theme(legend.position = c(.95, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'))+
+  facet_grid(.~Ground +Date, scales = "free_x") # group by Ground&Date, allows only the shots relevant for ea ground
+plot(f2.4)
+ggsave("Figures/f2.4.emf")
+```
+
+## Figure 2.5
+```{r myfig2.5}
+
+OR2019_1 <- OR2019 %>%
+  mutate(stage = as.character(stage))%>% 
+  mutate(Shot = as.character(Shot)) %>% 
+  group_by(sex)
+  
+  
+f2.5 <- OR2019_1 %>% 
+  ggplot(
+    mapping = aes(x = Shot,
+                  fill = stage))+
+  geom_bar(position = "fill")+
+  scale_fill_manual(values = c("yellow","orange","red","black"))+
+  facet_grid(.~Ground + Date, scales = "free_x")
+
+  
+plot(f2.5)
+
+```
 
 
 # My Data School Experience
