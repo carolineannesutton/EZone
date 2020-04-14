@@ -19,15 +19,16 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(ggplot2)
 library(scales)
-library(ggpubr)
-library(Rmisc)
+#library(ggpubr)
+#library(Rmisc)
 library(dplyr)
-library(devEMF)
+#library(devEMF)
 library(tidyr)
 library(kableExtra)
 library(knitr)
 library(cowplot)
 library(gridExtra)
+library()
 
 
 #read in tidy data from results folder
@@ -141,7 +142,7 @@ ggsave(filename = "Figures/f2.2.emf")
 ## Table 2.4 
 Mode and Numbers of fish by Year, Ground, Sex
 ```{r Table2.4}
-Roughy1 <- Roughy1 %>% 
+Roughy2 <- Roughy1 %>% 
   mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
   group_by(GbyS) %>% 
   mutate(sumsum = cumsum(Length))
@@ -154,12 +155,12 @@ Mode <- function(x) {
         return(as.numeric(names(x_table)[which.max(x_table)]))
         }
 }
-Roughy_mode <- Roughy1 %>% 
+Roughy_mode <- Roughy2 %>% 
   dplyr::group_by(year,GbyS) %>%
   dplyr::summarise(Mode = Mode(x = Length))%>%
   spread(GbyS, Mode) 
 #create counts
-Roughy_nos <- Roughy1 %>% 
+Roughy_nos <- Roughy2 %>% 
   dplyr::group_by(year, GbyS) %>%
   dplyr::summarise(Numbers = n())%>%
   spread(GbyS, Numbers)
@@ -344,7 +345,7 @@ f2.5 <- arrangeGrob(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(5,6), heights= c
                  
 ggsave("Figures/f2.5.emf",f2.5) # saves the plot to file :)
 ```
-```{r my fig6}
+```{r my fig2.5b}
 
 OR2019_1 <- OR2019 %>%
   mutate(stage = as.character(stage))%>% 
@@ -405,7 +406,7 @@ Msp1 <- ggplot(OR2019_1 %>%
 
 grid.arrange(Fsh1,Fsp1,Msh1, Msp1, ncol=2, nrow=2, widths= c(5,4.5), heights= c(7,7)) #arrange plot into a grid (this does not save it only plots to view)
 
-f2.5 <- arrangeGrob(Fsh1,Fsp1,Msh1, Msp1, ncol=2, nrow=2, widths= c(5,4.5), heights= c(7,7)) # creates plot as an object
+f2.5b <- arrangeGrob(Fsh1,Fsp1,Msh1, Msp1, ncol=2, nrow=2, widths= c(5,4.5), heights= c(7,7)) # creates plot as an object
 
                  
 ggsave("Figures/f2.5.emf",f2.5) # saves the plot to file :)
@@ -415,13 +416,113 @@ OR2019_1 <- OR2019 %>%
   mutate(Shot = as.character(Shot)) %>% 
   group_by(sex)
 
-
-
+ggsave("Figures/f2.5b.emf",f2.5b) # saves the plot to file :)
 
 ```
+## Table 2.7
+```{r mytable, out.width='100%', echo = T}
+OR2019p <- Roughy1 %>% 
+  filter(year == 2019) %>% 
 
+  
+  OR2019_sHg <- OR2019p %>%                                        # table for SH both sexes
+    filter(Ground == "St Helens") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+  OR2019_sPg <- OR2019p %>%                                        #talbe for SP both sexes
+    filter(Ground == "St Patricks") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+ OR2019_SHSPbg <- OR2019p %>%                                      # table for Grounds combined sexes
+    dplyr::group_by(Ground) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = "M and F")
+ 
+ OR2019_sex <- OR2019p %>%                                      # table for sex combined grounds
+    dplyr::group_by(sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(Ground = "SH and SP")
+ 
+  OR2019_survey <- OR2019p %>%     # talbe for survey
+    dplyr::summarise(n = n(), mean = mean(round(Length))) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex ="all fish",
+           Ground = "Survey total")
 
+    
+t2.7 <- bind_rows(OR2019_sHg, OR2019_sPg, OR2019_SHSPbg,OR2019_sex,OR2019_survey) %>% 
+  dplyr::rename("number of fish" = n, "Average length (cm)" = mean, "Spawning Ground"= Ground) %>% 
+  dplyr::mutate_at(4:5, funs(round(.,2)))
 
+knitr::kable(tail(t2.7, n = 9), format = "html", caption = "The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+
+ggsave("Figures/t2.7.emf")
+```
+
+## TAble 2.8
+```{r mytable, out.width=100%, ehco=T}
+
+OR2019W <- Roughy %>% 
+  filter(year == 2019) %>% 
+  select(Area_MS,sex,weight_kg)%>%
+  drop_na() %>% 
+  dplyr::rename("Ground"=Area_MS)
+
+  
+  w_sHg <- OR2019W %>%                                        # table for SH both sexes
+    filter(Ground == "St Helens") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+  w_sPg <- OR2019W %>%                                        #talbe for SP both sexes
+    filter(Ground == "St Patricks") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+ w_SHSPbg <- OR2019W %>%                                      # table for Grounds combined sexes
+    dplyr::group_by(Ground) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = "M and F")
+ 
+ w_sex <- OR2019W %>%                                      # table for sex combined grounds
+    dplyr::group_by(sex) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(Ground = "SH and SP")
+ 
+  w_survey <- OR2019W %>%     # talbe for survey
+    dplyr::summarise(n = n(), mean = mean(round(weight_kg))) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex ="all fish",
+           Ground = "Survey total")
+
+    
+t2.8 <- bind_rows(w_sHg, w_sPg, w_SHSPbg,w_sex,w_survey) %>% 
+  dplyr::rename("number of fish" = n, "Average of weight (kg)" = mean, "Spawning Ground"= Ground) %>% 
+  dplyr::mutate_at(4:5, funs(round(.,2)))
+
+knitr::kable(tail(t2.8, n = 9), format = "html", caption = "The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+
+#ggsave("Figures/t2.8.emf")
+
+```
 # My Data School Experience
 
 Data School 
