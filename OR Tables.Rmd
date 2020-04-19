@@ -1,0 +1,154 @@
+---
+title: "Tables for Roughy Report 2019"
+author: "Caroline Sutton"
+date: "19/04/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load libraries
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(Rmisc)
+library(dplyr)
+library(devEMF)
+library(tidyr)
+library(kableExtra)
+library(knitr)
+library(cowplot)
+library(gridExtra)
+library(flextable)
+library(officer)
+
+#read in tidy data from results folder
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(),
+                                                                           mark = col_character()
+                                                                           ))
+
+#remame and select columns
+
+Roughy1 <- Roughy %>% 
+  mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
+  mutate(Ground = Area_MS) %>%
+  drop_na(Ground) %>% 
+  drop_na(Length) %>% 
+  drop_na(sex) %>% 
+  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+## Table 2.3
+```{r table 2.3, echo=FALSE}
+
+OR2019 <- Roughy1 %>% 
+  filter(year == 2019)
+
+
+OR2019_sum <- OR2019 %>% 
+  dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
+  dplyr::summarise(num_rows = n()) %>% 
+  spread(sex,num_rows) %>% 
+  mutate(`Total` = F + M) 
+
+# creating ground/ and survey totals
+
+TSH <- OR2019_sum %>% 
+  filter(Ground == "St Helens") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Helens Total")
+
+TSP <- OR2019_sum %>% 
+  filter(Ground == "St Patricks") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Patricks Total")
+
+TotalS <- OR2019_sum %>% 
+  summarise(ShotWeight_kg = sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "Survey Total")
+
+OR2019_sum <- bind_rows(OR2019_sum, TSH, TSP,TotalS) %>% # put all together for totals
+  dplyr::rename("Shot Weight (kg" = ShotWeight_kg, "Total Nos Fish" = Total)
+  
+OR2019_sum_g <- as_grouped_data(x=OR2019_sum,groups = c("Ground")) %>% 
+  mutate(Amount = if_else(is.na(Ground), "", as.character(Ground)))
+        
+t2.3 <- autofit(flextable(OR2019_sum))
+t2.3 <- theme_booktabs(t2.3)
+t2.3 <- align( t2.3, align = "center", part = "all" )
+t2.3
+
+
+t2.3b <- as_flextable((OR2019_sum_g))
+t2.3b
+  
+```
+
+
+## Table 2.4
+```{r table 2.4, echo=FALSE}
+Roughy2 <- Roughy1 %>% 
+  mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
+  group_by(GbyS) %>% 
+  mutate(sumsum = cumsum(Length))
+
+
+#create function to find the mode
+Mode <- function(x) {
+    if (is.numeric(x)) {
+        x_table <- table(x)
+        return(as.numeric(names(x_table)[which.max(x_table)]))
+        }
+}
+Roughy_mode <- Roughy2 %>% 
+  dplyr::group_by(year,GbyS) %>%
+  dplyr::summarise(Mode = Mode(x = Length))%>%
+  spread(GbyS, Mode) 
+#create counts
+Roughy_nos <- Roughy2 %>% 
+  dplyr::group_by(year, GbyS) %>%
+  dplyr::summarise(Numbers = n())%>%
+  spread(GbyS, Numbers)
+
+#bind the mode and counts
+R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
+  select(-6)#remove the year1 colomn
+
+  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
+  
+  
+t2.4 <- flextable(R_Mode_Count_order)
+#t2.4 <- align(t2.4, align = "center", part = "all")
+t2.4 <- set_header_labels(t2.4
+                          ,year =""
+                          ,'St Helens_F'="St Helens, Female",'St Helens_F1'="St Helens, Female"
+                          ,'St Helens_M'="St Helens, Male", 'St Helens_M1'="St Helens, Male"
+                          , 'St Patricks_F'= "St Patricks, Female", 'St Patricks_F1'="St Patricks, Female"
+                          , 'St Patricks_M'= "St Patricks, Male", 'St Patricks_M1' ="St Patricks, Male")
+t2.4 <- merge_at(t2.4, i=1, j=2:3, part = "header")
+t2.4 <- merge_at(t2.4, i=1, j=4:5, part = "header")  
+t2.4 <- merge_at(t2.4, i=1, j=6:7, part = "header")
+t2.4 <- merge_at(t2.4, i=1, j=8:9, part = "header")
+t2.4 <- add_header_row(t2.4, top=FALSE,
+                       values = c("Year", "Mode","Nos. Fish", "Mode","Nos. Fish", "Mode","Nos. Fish"
+                                  , "Mode","Nos. Fish"))
+t2.4 <- theme_booktabs(t2.4)
+t2.4 <- autofit(t2.4)
+t2.4 <- align( t2.4, align = "center", part = "all" )
+t2.4
+
+
+
+```

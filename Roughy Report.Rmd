@@ -3,7 +3,7 @@ title: "2019 Orange Roughy Eastern Zone Spawaning Survey Figures and Tables"
 author: "Caroline Sutton"
 date: "03/12/2019"
 output:
-  html_document:
+ html_document:
     code_folding: hide
 
 ---
@@ -78,13 +78,14 @@ OR2019_sum <- OR2019 %>%
   dplyr::group_by(Ground,Shot,Date, 'Shot Weight (kg)' = ShotWeight_kg,sex) %>% 
   dplyr::summarise(num_rows = n()) %>% 
   spread(sex,num_rows) %>% 
-  mutate(`number of fish` = F + M)
+  mutate(`Total fish` = F + M)
 
-
+#tab_df(OR2019_sum,file = "Figures/t2.3.doc") # create and save word doc . Must # as once created
 
 knitr::kable(head(OR2019_sum, n=14), format = "html", caption = "Table 2.3 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width  = "100%")
+
 ```
 
 ## Figure 2.1 
@@ -177,6 +178,7 @@ knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fis
   add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
     add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
     kableExtra::scroll_box(width = "100%")
+
 ```
   
 ## Figure 2.3
@@ -523,7 +525,7 @@ knitr::kable(tail(t2.8, n = 9), format = "html", caption = "The proportion of ma
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
 
-#ggsave("Figures/t2.8.emf")
+#ggsave("Figures/t2.8.doc")
 ```
 
 ##Figure 2.6
