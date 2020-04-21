@@ -447,6 +447,34 @@ knitr::kable(head(t2.5, n=14), format = "html", caption = "Table 2.5",
 
 ```
 
+### Table 2.6
+```{r mytable 2.6}
+
+t2.6a <- Roughy_2019_Shotnos %>% 
+  mutate(Total= F + M) %>% 
+  mutate(Fratio = round(F/Total,digits = 2)) %>% 
+  mutate(Mratio = round(M/Total,digits = 2))
+
+t2.6b <- Roughy_2019 %>% 
+   dplyr::group_by(Ground,sex)%>% 
+  dplyr::summarise(nos = n()) %>% 
+  spread(sex,nos) %>% 
+  mutate(Total = F + M) %>%
+  mutate(Fratio = round(F/Total, digits = 2)) %>% 
+  mutate(Mratio = round(M/Total, digits = 2)) 
+  
+
+t2.6 <- bind_rows(t2.6a,t2.6b) %>% 
+ rename(c("Total" = "all fish", "Fratio"= "F ratio", "Mratio" = "M ratio"))
+  
+
+
+knitr::kable((t2.6), format = "html", caption = "Figure 2.6") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+
+
+```
 ### Table 2.7
 ```{r mytable2.7}
 OR2019p <- Roughy %>% 
