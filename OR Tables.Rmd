@@ -6,7 +6,7 @@ output: word_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 
 #Load libraries
 library(tidyverse)
@@ -31,7 +31,7 @@ Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotW
 
 #remame and select columns
 
-Roughy1 <- Roughy %>% 
+Roughy <- Roughy %>% 
   mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
   mutate(Ground = Area_MS) %>%
   drop_na(Ground) %>% 
@@ -40,66 +40,62 @@ Roughy1 <- Roughy %>%
   select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-
-
 ## Table 2.3
 ```{r table 2.3, echo=FALSE}
+# fitler data for 2019
+Roughy_2019 <- Roughy %>% 
+  filter(year==2019)
 
-OR2019 <- Roughy1 %>% 
-  filter(year == 2019)
-
-
-OR2019_sum <- OR2019 %>% 
+Roughy_2019_sum <- Roughy %>% 
+  filter(year==2019) %>% 
   dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
   dplyr::summarise(num_rows = n()) %>% 
   spread(sex,num_rows) %>% 
   mutate(`Total` = F + M) 
 
-# creating ground/ and survey totals
+# creating ground/ and survey totals for:
 
-TSH <- OR2019_sum %>% 
+#St Helens
+TSH <- Roughy_2019_sum %>% 
   filter(Ground == "St Helens") %>% 
   dplyr::group_by(Ground) %>% 
   dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
   mutate(Ground = "St Helens Total")
-
-TSP <- OR2019_sum %>% 
+#St Patricks
+TSP <- Roughy_2019_sum %>% 
   filter(Ground == "St Patricks") %>% 
   dplyr::group_by(Ground) %>% 
   dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
   mutate(Ground = "St Patricks Total")
 
-TotalS <- OR2019_sum %>% 
+# totals for SH and SP
+TotalS <- Roughy_2019_sum %>% 
   summarise(ShotWeight_kg = sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
   mutate(Ground = "Survey Total")
 
-OR2019_sum <- bind_rows(OR2019_sum, TSH, TSP,TotalS) %>% # put all together for totals
+#bind the shot and totals 
+Roughy_2019_sumtotals <- bind_rows(Roughy_2019_sum, TSH, TSP,TotalS) %>% # put all together for totals
   dplyr::rename("Shot Weight (kg" = ShotWeight_kg, "Total Nos Fish" = Total)
   
-OR2019_sum_g <- as_grouped_data(x=OR2019_sum,groups = c("Ground")) %>% 
+OR2019_sum_g <- as_grouped_data(x=Roughy_2019_sumtotals,groups = c("Ground")) %>% 
   mutate(Amount = if_else(is.na(Ground), "", as.character(Ground)))
         
-t2.3 <- autofit(flextable(OR2019_sum))
+t2.3 <- autofit(flextable(Roughy_2019_sumtotals))
 t2.3 <- theme_booktabs(t2.3)
 t2.3 <- align( t2.3, align = "center", part = "all" )
 t2.3
 
 
-t2.3b <- as_flextable((OR2019_sum_g))
-t2.3b
+#t2.3b <- as_flextable((OR2019_sum_g))
+#t2.3b
   
 ```
 
 
 ## Table 2.4
+
 ```{r table 2.4, echo=FALSE}
-Roughy2 <- Roughy1 %>% 
+Roughy_1 <- Roughy %>% 
   mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
   group_by(GbyS) %>% 
   mutate(sumsum = cumsum(Length))
@@ -112,12 +108,12 @@ Mode <- function(x) {
         return(as.numeric(names(x_table)[which.max(x_table)]))
         }
 }
-Roughy_mode <- Roughy2 %>% 
+Roughy_mode <- Roughy_1 %>% 
   dplyr::group_by(year,GbyS) %>%
   dplyr::summarise(Mode = Mode(x = Length))%>%
   spread(GbyS, Mode) 
 #create counts
-Roughy_nos <- Roughy2 %>% 
+Roughy_nos <- Roughy_1 %>% 
   dplyr::group_by(year, GbyS) %>%
   dplyr::summarise(Numbers = n())%>%
   spread(GbyS, Numbers)
@@ -149,6 +145,48 @@ t2.4 <- autofit(t2.4)
 t2.4 <- align( t2.4, align = "center", part = "all" )
 t2.4
 
+```
+
+### Table 2.5
+
+```{r table2.5, out.width='100%', echo = FALSE} 
+
+
+#spread the weight by sex
+Roughy_2019_shotweight <- Roughy_2019 %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise('Average weight' = round(mean(weight_kg, na.rm = TRUE),digits = 2)) %>% 
+  spread(sex,'Average weight') %>% 
+  rename(c("F"="fw","M"="mw"))
+
+#spread the SD by sex
+Roughy_2019_ShotweightSD <- Roughy_2019 %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise(SD = round(sd(weight_kg, na.rm = TRUE),digits = 2)) %>% 
+  spread(sex, SD) %>% 
+   rename(c("F"="fsd","M"="msd"))
+
+#spread the nos by sex
+Roughy_2019_Shotnos <-Roughy_2019 %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise(nos = n()) %>% 
+  spread(sex, nos)
+
+#bind weight, sd and nos, remove dupicate columns
+
+t2.5 <- cbind(Roughy_2019_shotweight,Roughy_2019_ShotweightSD, Roughy_2019_Shotnos) %>% 
+  select(-5,-6,-9,-10,-13,-14)
+  #rename(c("fw" ="Avg weight (kg)","fsd"= "SD", "F" = "nos F", "mw"="Avg Weight (kg)","M"="nos M"))
+t2.5 <- t2.5[ ,c(1,2,3,5,7,4,6,8)] 
+t2.5 <- flextable(t2.5) %>%
+  add_header_row( values = c("","","","Females","","","Males","")) %>% 
+  set_header_labels("Ground"="Ground", "Shot"="Shot", "fw"= "weight (kg)", "fsd"="SD", "F"="nos",
+                    "mw"="weight (kg)", "msd"="SD", "M"= "nos") %>% 
+ theme_booktabs() %>% 
+  autofit() %>% 
+  align(align = "center", part = "all")
+
+t2.5
 
 
 ```
