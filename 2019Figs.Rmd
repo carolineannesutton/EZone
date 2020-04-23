@@ -32,7 +32,7 @@ Roughy <- Roughy %>%
   drop_na(Ground) %>% 
   drop_na(Length) %>% 
   drop_na(sex) %>% 
-  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg)
+  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg, Otoliths)
 ```
 # Introduction
 Summary Data, Tables and Figures for Eastern Zone Roughy Survey 2019
@@ -55,7 +55,28 @@ knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
 ```
+## Summary for otoliths data
 
+```{r}
+Roughy_year <- Roughy %>% 
+  filter(year == 2019)
+Roughy_otoliths <- Roughy_year %>% 
+  dplyr::group_by(Ground,Shot, sex) %>% 
+  dplyr::summarise(o =sum(Otoliths, na.rm = TRUE)) %>% 
+  spread(sex,o) %>% 
+  mutate('T_o' = F + M)
+Roughy_otoliths
+
+Roughy_otoliths <- Roughy_year %>% 
+  dplyr::group_by(Ground,sex) %>% 
+  dplyr::summarise(o =sum(Otoliths, na.rm = TRUE)) %>% 
+  spread(Ground,o) 
+Roughy_otoliths
+
+
+448 +391
+
+```
 ### Table 2.3
 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019 (* no fish collected from these shots. Note that bycatch data were not reported
 
