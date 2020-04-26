@@ -28,7 +28,7 @@ library(kableExtra)
 library(knitr)
 library(cowplot)
 library(gridExtra)
-library()
+
 
 
 #read in tidy data from results folder
@@ -62,7 +62,7 @@ Data_summary <- Roughy1 %>%
 Data_summary <- spread(Data_summary, key = year,value = n)
 
 
-knitr::kable(tail(Data_summary, n = 5), format = "html", caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
+knitr::kable(tail(Data_summary, n = 5),format = "html",caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
 
