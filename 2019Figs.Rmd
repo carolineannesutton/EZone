@@ -30,9 +30,9 @@ Roughy <- Roughy %>%
   mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
   mutate(Ground = Area_MS) %>% 
   drop_na(Ground) %>% 
-  drop_na(Length) %>% 
+  #drop_na(Length) %>% 
   drop_na(sex) %>% 
-  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg, Otoliths)
+  select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths)
 ```
 
 ```{r}
@@ -64,8 +64,47 @@ knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
 ```
-## Summary for otoliths data
+## Table 2.3
+```{r table 2.3, echo=FALSE}
+# fitler data for 2019
+Roughy_year <- Roughy %>% 
+  filter(year==2019)
 
+Roughy_year_sum <- Roughy %>% 
+  filter(year==2019) %>% 
+  dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
+  dplyr::summarise(num_rows = n()) %>% 
+  spread(sex,num_rows) %>% 
+  mutate(`Total` = F + M) 
+
+# creating ground/ and survey totals for:
+
+#St Helens
+TSH <- Roughy_year_sum %>% 
+  filter(Ground == "St Helens") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Helens Total")
+#St Patricks
+TSP <- Roughy_year_sum %>% 
+  filter(Ground == "St Patricks") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Patricks Total")
+
+# totals for SH and SP
+TotalS <- Roughy_year_sum %>% 
+  summarise(ShotWeight_kg = sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "Survey Total")
+
+#bind the shot and totals 
+Roughy_year_sumtotals <- bind_rows(Roughy_year_sum, TSH, TSP,TotalS)  # put all together for totals
+ # dplyr::rename("Shot Weight (kg)" = ShotWeight_kg, "Total Nos Fish" = Total)
+  
+Roughy_year_sumtotals
+
+```
+## Summary for otoliths data for updating Table 2.3
 ```{r}
 Roughy_year <- Roughy %>% 
   filter(year == 2019)
@@ -74,7 +113,6 @@ Roughy_otoliths <- Roughy_year %>%
   dplyr::summarise(o =sum(Otoliths, na.rm = TRUE)) %>% 
   spread(sex,o) %>% 
   mutate('T_o' = F + M)
-Roughy_otoliths
 
 Roughy_otoliths <- Roughy_year %>% 
   dplyr::group_by(Ground,sex) %>% 
@@ -83,13 +121,14 @@ Roughy_otoliths <- Roughy_year %>%
 Roughy_otoliths
 
 
-448 +391
 
 ```
-### Table 2.3
+### Table 2.4
+* need to update code to include shot weights for shots where fish were not measured **
+
 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019 (* no fish collected from these shots. Note that bycatch data were not reported
 
-```{r table2.3, out.width='100%', echo = T} 
+```{r table2.4, out.width='100%', echo = T} 
 Roughy_2019 <- Roughy %>% 
   filter(year == 2019)
 Roughy_2019_shotsum <- Roughy_2019 %>% 
@@ -98,13 +137,17 @@ Roughy_2019_shotsum <- Roughy_2019 %>%
   spread(sex,nos) %>% 
   mutate(`Total fish` = F + M)
 
+write.csv(Roughy_2019_shotsum,file = "Figures/t2.4.csv")
+
 #tab_df(OR2019_sum,file = "Figures/t2.3.doc") # create and save word doc . Must # as once created
 
-knitr::kable(head(Roughy_2019_shotsum, n=14), format = "html", caption = "Table 2.3 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
+knitr::kable(head(Roughy_2019_shotsum, n=14), format = "html", caption = "Table 2.4 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width  = "100%")
 
 ```
+
+
 ### Figure 2.1 
 Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2019. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
 ```{r myfig2.1}
@@ -155,7 +198,7 @@ Roughy_2019_length_Ground
 ## Figure 2.2
 Standard Length by sex and ground
 ```{r myfig2.2}
-OR_LF <- Roughy_2019 %>% # This is the ONE
+OR_LF <- Roughy_year %>% # This is the ONE
   group_by(Ground, sex) %>% 
   add_tally() %>% 
   group_by(Ground, sex, Length) %>% 
@@ -173,9 +216,29 @@ plot(f2.2)
 ggsave(filename = "Figures/f2.2.emf")
 ggsave(filename = "Figures/f2.2.jpg")
 ```
-## Table 2.4 
+
+## Figure 2.3
+Cummunlative Frequency
+```{r myfig2.3}
+
+#using stat_ecdf to calculate the cummulative frequency
+
+f2.3 <- ggplot(Roughy_year,aes(x=Length, colour= sex)) +
+   stat_ecdf(geom = "smooth")+
+  scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
+  scale_y_continuous(breaks = seq(0,1,0.2))+
+  facet_wrap(~Ground)+
+  ylab("cummulative frequency")+
+  xlab("Length (cm)")+
+  theme_bw()+
+  theme(legend.position = "bottom")
+plot(f2.3)
+ggsave(filename = "Figures/f2.3.emf")
+```
+
+## Table 2.5 
 Mode and Numbers of fish by Year, Ground, Sex
-```{r Table2.4}
+```{r Table2.5}
 Roughy_1 <- Roughy %>% 
   mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
   group_by(GbyS) %>% 
@@ -205,33 +268,19 @@ Roughy_nos <- Roughy_1 %>%
 R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
   select(-6)#remove the year1 colomn
 
-  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
+t2.5<-  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
+  
+  write.csv(t2.5,"Figures/t2.5.csv")
+  #note that this table is also saved as t2.4.doc in "OR Tables.Rmd"
  
-knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode"), format = "html", caption = "Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
+knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode"), format = "html", caption = " Figure 2.5. Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
   kableExtra::kable_styling("striped") %>%
   add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
     add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
     kableExtra::scroll_box(width = "100%")
 
 ```
-## Figure 2.3
-Cummunlative Frequency
-```{r myfig2.3}
 
-#using stat_ecdf to calculate the cummulative frequency
-
-f2.3 <- ggplot(Roughy_2019,aes(x=Length, colour= sex)) +
-   stat_ecdf(geom = "smooth")+
-  scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
-  scale_y_continuous(breaks = seq(0,1,0.2))+
-  facet_wrap(~Ground)+
-  ylab("cummulative frequency")+
-  xlab("Length (cm)")+
-  theme_bw()+
-  theme(legend.position = "bottom")
-plot(f2.3)
-ggsave(filename = "Figures/f2.3.emf")
-```
 
 ### Figure 2.4
 ```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
@@ -239,14 +288,14 @@ ggsave(filename = "Figures/f2.3.emf")
 library(gridExtra) #for function grid.arrange
 
 #average SL by Area and sex
-Roughy_2019_lengthsum <- summarySE(Roughy_2019, measurevar = "Length", groupvars = c("Shot","Date","Ground","sex")) %>% 
+Roughy_year_lengthsum <- summarySE(Roughy_year, measurevar = "Length", groupvars = c("Shot","Date","Ground","sex")) %>% 
 
   mutate(Shot = as.character(Shot)) %>% 
   arrange(Length)
 
 pd <- position_dodge(0) # in case need to experiment with operlap of values - this was not required so set 0
 
-SH <- ggplot(Roughy_2019_lengthsum %>% 
+SH <- ggplot(Roughy_year_lengthsum %>% 
                filter(Ground == "St Helens"),
              aes(x = reorder(Shot, sort(as.numeric(Shot))),y = Length, colour = sex)) +
     geom_errorbar(aes(ymin = Length - se, ymax= Length + ci),
@@ -268,7 +317,7 @@ SH <- ggplot(Roughy_2019_lengthsum %>%
   xlab("Shot Number, St Helens")+
   ylab("Average Standard Length (cm)")
 
-SP <- ggplot(Roughy_2019_lengthsum %>% 
+SP <- ggplot(Roughy_year_lengthsum %>% 
                filter(Ground =="St Patricks"),
              aes(x = reorder(Shot, sort(as.numeric(Shot))),y = Length, colour = sex)) +
     geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
@@ -291,27 +340,159 @@ SP <- ggplot(Roughy_2019_lengthsum %>%
 
 grid.arrange(SH,SP,ncol=2, widths= c(5,4)) #arrange plot into a grid (this does not save it only plots to view)
 
-f2.4b <- arrangeGrob(SH, SP,ncol = 2, widths = c(5,4)) # creates plot as an object
+f2.4 <- arrangeGrob(SH, SP,ncol = 2, widths = c(5,4)) # creates plot as an object
 
                  
-ggsave("Figures/f2.4b.emf",f2.4b) # saves the plot to file :)
+ggsave("Figures/f2.4.emf",f2.4) # saves the plot to file :)
+```
+### Table 2.6
+
+```{r table2.6, out.width='100%', echo = T} 
+
+
+#spread the weight by sex
+
+
+Roughy_year_shotweight <- Roughy_year %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise('Average weight' = round(mean(weight_kg, na.rm = TRUE),digits = 2)) %>% 
+  spread(sex,'Average weight') %>% 
+  rename(c("F"="fw","M"="mw"))
+
+#spread the SD by sex
+Roughy_year_ShotweightSD <- Roughy_year %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise(SD = round(sd(weight_kg, na.rm = TRUE),digits = 2)) %>% 
+  spread(sex, SD) %>% 
+   rename(c("F"="fsd","M"="msd"))
+
+#spread the nos by sex
+Roughy_year_Shotnos <-Roughy_year %>% 
+  dplyr::group_by(Ground,sex,Shot) %>% 
+  dplyr::summarise(nos = n()) %>% 
+  spread(sex, nos)
+
+#bind weight, sd and nos, remove dupicate columns
+
+t2.6 <- cbind(Roughy_year_shotweight,Roughy_year_ShotweightSD, Roughy_year_Shotnos) %>% 
+  select(-5,-6,-9,-10,-13,-14)
+
+t2.6 <- t2.6[ ,c(1,2,3,5,7,4,6,8)] 
+write.csv(t2.6,"Figures/t2.6.csv")
+
+
+#tab_df(OR2019_sum,file = "Figures/t2.3.doc") # create and save word doc . Must # as once created
+
+knitr::kable(head(t2.6, n=14), format = "html", caption = "Table 2.6", 
+             col.names = c("Ground","Shot","Avg weight (kg)", "SD","nos","Avg weight (kg)", "SD", "nos")) %>% 
+  add_header_above(c("","", "Female fish "= 3, "Male Fish" = 3)) %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width  = "100%")
+
+```
+
+### Table 2.7
+
+```{r t2.6}
+
+t2.7a <- Roughy %>% 
+
+  filter(year == 2019) %>% 
+
+  dplyr::group_by(Ground,sex,Shot, ShotWeight_kg) %>% 
+
+  dplyr::summarise(nos = n()) %>% 
+
+  spread(sex, nos) %>% 
+
+  mutate(Total= F + M) %>% 
+
+  mutate(Fratio = round(F/Total,digits = 2)) %>% 
+
+  mutate(Mratio = round(M/Total,digits = 2)) %>% 
+
+  select(-c(F,M))
+
+
+
+t2.7b <- Roughy_year %>% 
+
+   dplyr::group_by(Ground,sex)%>% 
+
+  dplyr::summarise(nos = n()) %>% 
+
+  spread(sex,nos) %>% 
+
+  mutate(Total = F + M) %>%
+
+  mutate(Fratio = round(F/Total, digits = 2)) %>% 
+
+  mutate(Mratio = round(M/Total, digits = 2)) %>% 
+
+    select(-c(F,M))
+
+
+
+t2.7c <- Roughy_year%>% 
+
+   dplyr::group_by(sex)%>% 
+
+  dplyr::summarise(nos = n()) %>% 
+
+  spread(sex,nos) %>% 
+
+  mutate(Total = F + M) %>%
+
+  mutate(Fratio = round(F/Total, digits = 2)) %>% 
+
+  mutate(Mratio = round(M/Total, digits = 2)) %>% 
+
+    select(-c(F,M))
+
+  
+t2.7 <- bind_rows(t2.7a,t2.7b,t2.7c) %>% 
+
+ rename(c("Total" = "nos fish", "Fratio"= "F ratio", "Mratio" = "M ratio"))
+
+  
+
+knitr::kable((t2.7), caption = "Figure 2.7")  
+
+ # kableExtra::kable_styling("striped") %>%
+
+  #kableExtra::scroll_box(width = "100%")
+
+
+
+write.csv(t2.7,"Figures/t2.7.csv")
+
 ```
 
 ### Figure 2.5
 ```{r myfig2.5}
 
-Roughy_2019 <- Roughy_2019 %>%
+Roughy_year <- Roughy_year %>%
   mutate(stage = as.character(stage))%>% 
-  #mutate(Shot = as.character(Shot)) %>% 
+  mutate(Shot = as.character(Shot)) %>%
+  mutate(Date = as.Date.character(Date,"%d/%m")) %>% 
   group_by(sex)
 
-Fsh <- ggplot(Roughy_2019 %>% 
+ORyear_sumFH <- Roughy_year_lengthsum %>% 
+  filter(Ground == "St Helens", sex == "F")
+ORyear_sumMH <- Roughy_year_lengthsum %>% 
+  filter(Ground == "St Helens", sex == "M")
+ORyear_sumFP <- Roughy_year_lengthsum %>% 
+  filter(Ground == "St Patricks", sex == "F")
+ORyear_sumMP <- Roughy_year_lengthsum %>% 
+  filter(Ground == "St Patricks", sex == "M")
+
+Fsh <- ggplot(Roughy_year %>% 
   filter(Ground == "St Helens", sex == "F"),
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
   scale_fill_manual(values = c("yellow","orange","red","grey"))+
   theme(axis.text=element_text(size=9))+
-  facet_grid(.~Shot, scales = "free_x", switch ="x")+
+ facet_grid(.~Shot, scales = "free_x", switch ="x")+
   theme(strip.text.x = element_text(size =8),
         panel.spacing = unit(0,"mm"))+ # remove spacing between facets
   theme(legend.position = "none")+
@@ -322,7 +503,7 @@ Fsh <- ggplot(Roughy_2019 %>%
   xlab("")
 
 
-Msh <- ggplot(Roughy_2019 %>% 
+Msh <- ggplot(Roughy_year %>% 
   filter(sex == "M",Ground =="St Helens"),
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
@@ -339,7 +520,7 @@ Msh <- ggplot(Roughy_2019 %>%
   ylab("Proportion male fish")
   
 
-Fsp <- ggplot(Roughy_2019 %>% 
+Fsp <- ggplot(Roughy_year %>% 
   filter(sex == "F",Ground =="St Patricks"),
   aes(x = Date, fill = stage, ))+
   geom_bar(position = "fill")+
@@ -354,7 +535,7 @@ Fsp <- ggplot(Roughy_2019 %>%
    ylab("")+
    xlab("")
 
-Msp <- ggplot(Roughy_2019 %>% 
+Msp <- ggplot(Roughy_year %>% 
   filter(sex == "M",Ground =="St Patricks"),
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
@@ -384,7 +565,7 @@ ggsave("Figures/f2.5.emf",f2.5) # saves the plot to file :)
 
 ### Figure 2.5b
 ```{r my fig2.5b}
-
+# need to replace 2019 with "year"
 Roughy_2019_2 <- Roughy_2019 %>%
   mutate(stage = as.character(stage))%>% 
   mutate(Shot = as.character(Shot)) %>% 
@@ -404,7 +585,7 @@ Fsh1 <- ggplot(Roughy_2019_2 %>%
   aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
   geom_bar()+
   scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), data = OR2019_sumFH)+
+  geom_text(aes(Shot, N +20, label = N, fill = NULL),size =3, data = OR2019_sumFH)+
  ylab("Female fish")+
   xlab("")
 
@@ -413,8 +594,8 @@ Msh1 <- ggplot(Roughy_2019_2 %>%
   filter(sex == "M",Ground =="St Helens"),
     aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
   geom_bar()+
-  scale_fill_manual(values = c("yellow","orange","black","black"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), data = OR2019_sumMH)+
+  scale_fill_manual(values = c("yellow","orange","black","grey"))+
+  geom_text(aes(Shot, N +20, label = N, fill = NULL),size=3, data = OR2019_sumMH)+
   xlab("Shot Number, St Helens")+
   ylab("Male fish")
   
@@ -424,7 +605,7 @@ Fsp1 <- ggplot(Roughy_2019_2 %>%
   aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
   geom_bar()+
   scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), data = OR2019_sumFP)+
+  geom_text(aes(Shot, N +20, label = N, fill = NULL), size=3, data = OR2019_sumFP)+
    ylab("")+
    xlab("")
 
@@ -433,7 +614,7 @@ Msp1 <- ggplot(Roughy_2019_2 %>%
     aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
   geom_bar()+
   scale_fill_manual(values = c("yellow","orange","black","black"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), data = OR2019_sumMP)+
+  geom_text(aes(Shot, N +20, label = N, fill = NULL), size=3, data = OR2019_sumMP)+
   xlab("Shot Number, St Patricks")+
   ylab("")
 
@@ -451,50 +632,7 @@ ggsave("Figures/f2.5b.emf",f2.5b) # saves the plot to file :)
 
 ```
 
-### Table 2.5
 
-```{r table2.5, out.width='100%', echo = T} 
-
-
-#spread the weight by sex
-
-
-Roughy_2019_shotweight <- Roughy_2019 %>% 
-  dplyr::group_by(Ground,sex,Shot) %>% 
-  dplyr::summarise('Average weight' = round(mean(weight_kg, na.rm = TRUE),digits = 2)) %>% 
-  spread(sex,'Average weight') %>% 
-  rename(c("F"="fw","M"="mw"))
-
-#spread the SD by sex
-Roughy_2019_ShotweightSD <- Roughy_2019 %>% 
-  dplyr::group_by(Ground,sex,Shot) %>% 
-  dplyr::summarise(SD = round(sd(weight_kg, na.rm = TRUE),digits = 2)) %>% 
-  spread(sex, SD) %>% 
-   rename(c("F"="fsd","M"="msd"))
-
-#spread the nos by sex
-Roughy_2019_Shotnos <-Roughy_2019 %>% 
-  dplyr::group_by(Ground,sex,Shot) %>% 
-  dplyr::summarise(nos = n()) %>% 
-  spread(sex, nos)
-
-#bind weight, sd and nos, remove dupicate columns
-
-t2.5 <- cbind(Roughy_2019_shotweight,Roughy_2019_ShotweightSD, Roughy_2019_Shotnos) %>% 
-  select(-5,-6,-9,-10,-13,-14)
-
-t2.5 <- t2.5[ ,c(1,2,3,5,7,4,6,8)] 
-
-
-#tab_df(OR2019_sum,file = "Figures/t2.3.doc") # create and save word doc . Must # as once created
-
-knitr::kable(head(t2.5, n=14), format = "html", caption = "Table 2.5", 
-             col.names = c("Ground","Shot","Avg weight (kg)", "SD","nos","Avg weight (kg)", "SD", "nos")) %>% 
-  add_header_above(c("","", "Female fish "= 3, "Male Fish" = 3)) %>% 
-  kableExtra::kable_styling("striped") %>%
-  kableExtra::scroll_box(width  = "100%")
-
-```
 
 ### Table 2.6b
 ```{r}
@@ -502,111 +640,255 @@ knitr::kable(head(t2.5, n=14), format = "html", caption = "Table 2.5",
 
 roughy_sum_W <- filter(Roughy, year == 2019) %>% 
   drop_na(weight_kg)
- summarySE(roughy_sum_W, measurevar = "weight_kg", groupvars = c("year","Ground","sex"))
- 
- roughy_sum_W %>% 
+WeightbySandG <- summarySE(roughy_sum_W, measurevar = "weight_kg", groupvars = c("year","Ground","sex"))
+WeightbySandG
+
+
+WeightbyG <- summarySE(roughy_sum_W, measurevar = "weight_kg", groupvars = c("year","Ground"))
+WeightbyG
+
+WeightSurv <- summarySE(roughy_sum_W, measurevar = "weight_kg", groupvars = c("year"))
+WeightSurv
+
+t2.6b <- bind_rows(WeightbySandG,WeightbyG,WeightSurv) %>% 
+  select(1,2,3,4,5,6)
+
+t2.6bb1<- Roughy %>% 
+  filter(year==2019) %>% 
+  dplyr::group_by(year,Ground, sex) %>% 
+  dplyr::summarise(weight = round(mean(weight_kg,na.rm = TRUE),digits = 2),
+                   SD = round(sd(weight_kg,na.rm = TRUE),digits = 2))
+
+t2.6bb2<- Roughy %>% 
+  filter(year==2019) %>% 
+  dplyr::group_by(year,Ground) %>% 
+  dplyr::summarise(weight = round(mean(weight_kg,na.rm = TRUE),digits = 2),
+                   SD = round(sd(weight_kg,na.rm = TRUE),digits = 2))
+
+t2.6bb3<- Roughy %>% 
+  filter(year==2019) %>% 
+  dplyr::group_by(year) %>% 
+  dplyr::summarise(weight = round(mean(weight_kg,na.rm = TRUE),digits = 2),
+                   SD = round(sd(weight_kg,na.rm = TRUE),digits = 2))
+
+t2.6bb <- bind_rows(t2.6bb1,t2.6bb2,t2.6bb3)
+t2.6bb
+write.csv(t2.6bb,file = "Figures/t2.6bb.csv")
+
+roughy_sum_W %>% 
    dplyr::group_by(sex) %>% 
-   dplyr::summarise(max(weight_kg), min(weight_kg),mean(weight_kg))
+   dplyr::summarise(max(weight_kg), min(weight_kg),mean(weight_kg)) 
+
+
 
  1.67-1.32
  
  
 ```
-### Table 2.6
-```{r mytable 2.6}
 
-t2.6a <- Roughy %>% 
-  filter(year == 2019) %>% 
-  dplyr::group_by(Ground,sex,Shot, ShotWeight_kg) %>% 
-  dplyr::summarise(nos = n()) %>% 
-  spread(sex, nos) %>% 
-  mutate(Total= F + M) %>% 
-  mutate(Fratio = round(F/Total,digits = 2)) %>% 
-  mutate(Mratio = round(M/Total,digits = 2)) %>% 
-  select(-c(F,M))
-
-
- 
-
-t2.6b <- Roughy_2019 %>% 
-   dplyr::group_by(Ground,sex)%>% 
-  dplyr::summarise(nos = n()) %>% 
-  spread(sex,nos) %>% 
-  mutate(Total = F + M) %>%
-  mutate(Fratio = round(F/Total, digits = 2)) %>% 
-  mutate(Mratio = round(M/Total, digits = 2)) %>% 
-    select(-c(F,M))
-
-t2.6c <- Roughy_2019 %>% 
-   dplyr::group_by(sex)%>% 
-  dplyr::summarise(nos = n()) %>% 
-  spread(sex,nos) %>% 
-  mutate(Total = F + M) %>%
-  mutate(Fratio = round(F/Total, digits = 2)) %>% 
-  mutate(Mratio = round(M/Total, digits = 2)) %>% 
-    select(-c(F,M))
-  
-
-t2.6 <- bind_rows(t2.6a,t2.6b,t2.6c) %>% 
- rename(c("Total" = "nos fish", "Fratio"= "F ratio", "Mratio" = "M ratio"))
-  
-
-
-knitr::kable((t2.6), caption = "Figure 2.6")  
- # kableExtra::kable_styling("striped") %>%
-  #kableExtra::scroll_box(width = "100%")
-
-write.csv(t2.6,"Figures/t2.6.csv")
-```
-### Table 2.7
-```{r mytable2.7}
-OR2019p <- Roughy %>% 
-  filter(year == 2019)
+### Table 2.8
+```{r mytable2.8}
+ORyear_p <- Roughy %>% 
+  filter(year == 2019) 
 
 
 
   
-  OR2019_sHg <- OR2019p %>%                                        # table for SH both sexes
+  OR2019_sHg <- ORyear_p %>%                                        # table for SH both sexes
     filter(Ground == "St Helens") %>%
     dplyr::group_by(Ground, sex) %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = c("F","M"))
   
-  OR2019_sPg <- OR2019p %>%                                        #talbe for SP both sexes
+  OR2019_sPg <- ORyear_p %>%                                        #talbe for SP both sexes
     filter(Ground == "St Patricks") %>%
     dplyr::group_by(Ground, sex) %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = c("F","M"))
   
- OR2019_SHSPbg <- OR2019p %>%                                      # table for Grounds combined sexes
+ OR2019_SHSPbg <- ORyear_p %>%                                      # table for Grounds combined sexes
     dplyr::group_by(Ground) %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
-    mutate(sex = "M and F")
+    mutate(sex = "M & F")
  
- OR2019_sex <- OR2019p %>%                                      # table for sex combined grounds
+ OR2019_sex <- ORyear_p %>%                                      # table for sex combined grounds
     dplyr::group_by(sex) %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(Ground = "SH and SP")
  
-  OR2019_survey <- OR2019p %>%     # talbe for survey
+  OR2019_survey <- ORyear_p %>%     # talbe for survey
     dplyr::summarise(n = n(), mean = mean(round(Length))) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex ="all fish",
            Ground = "Survey total")
 
     
-t2.7 <- bind_rows(OR2019_sHg, OR2019_sPg, OR2019_SHSPbg,OR2019_sex,OR2019_survey) %>% 
-  dplyr::rename("number of fish" = n, "Average length (cm)" = mean, "Spawning Ground"= Ground) %>% 
-  dplyr::mutate_at(4:5, funs(round(.,2)))
+t2.8 <- bind_rows(OR2019_sHg, OR2019_sPg, OR2019_SHSPbg,OR2019_sex,OR2019_survey) %>% 
+  mutate("Estimated weight (kg) based on Lyle et al(1991)" = (0.037*(mean)^2.942)/1000) %>% 
+  dplyr::rename("No of fish" = n, "Avg length (cm)" = mean, "Spawning Ground"= Ground, "Prop"=Proportion) %>% 
+  dplyr::mutate_at(4:6, funs(round(.,2)))  
+t2.8 <- t2.8[,c(1,2,3,5,4,6)]
+  
 
-knitr::kable(tail(t2.7, n = 9), format = "html", caption = "The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+
+knitr::kable(tail(t2.8, n = 9), format = "html", caption = "t2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
-write.csv(t2.7,"Figures/t2.7.csv")
+write.csv(t2.8,"Figures/t2.8.csv")
+
+```
+
+### Table 2.9
+```{r mytable2.9}
+OR2019w <- Roughy %>% 
+  filter(year == 2019) %>% 
+  drop_na(weight_kg)
 
 
+  OR2019_sHgw <- OR2019w %>%                                        # table for SH both sexes
+    filter(Ground == "St Helens") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg,na.rm = TRUE)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+  OR2019_sPgw <- OR2019w %>%                                        #talbe for SP both sexes
+    filter(Ground == "St Patricks") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean =  mean(weight_kg,na.rm = TRUE)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+ OR2019_SHSPbgw <- OR2019w %>%                                      # table for Grounds combined sexes
+    dplyr::group_by(Ground) %>%
+    dplyr::summarise(n = n(), mean = mean(weight_kg,na.rm = TRUE)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = "M & F")
+ 
+ OR2019_sexw <- OR2019w %>%                                      # table for sex combined grounds
+    dplyr::group_by(sex) %>%
+    dplyr::summarise(n = n(), mean =  mean(weight_kg,na.rm = TRUE)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(Ground = "SH & SP")
+ 
+  OR2019_surveyw <- OR2019w %>%     # talbe for survey
+    dplyr::summarise(n = n(), mean =  mean(weight_kg,na.rm = TRUE)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex ="all fish",
+           Ground = "Survey total")
+
+    
+t2.9 <- bind_rows(OR2019_sHgw, OR2019_sPgw, OR2019_SHSPbgw,OR2019_sexw,OR2019_surveyw) %>% 
+  dplyr::rename("Nos of fish weighed" = n, "Avg of measured weights (kg)" = mean, "Spawning Ground"= Ground) %>% 
+  dplyr::mutate_at(4:5, funs(round(.,2))) %>% 
+  bind_cols(t2.8) %>% 
+  select(-6,-7,-8,-9,-10)
+
+t2.9 <- t2.9[,c(1,2,3,5,4,6)]
+  
+
+
+knitr::kable(tail(t2.9, n = 9), format = "html", caption = "Table 2.9 The proportion of male and female fish at each ground and their associated weighted averages for fish wieght (kg) for the 2019 Eastern Zone spawning population") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+write.csv(t2.9,"Figures/t2.9.csv")
+```
+
+
+##Figure 2.6
+
+```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+Lyle_com <- function(x) {(0.037 * (x) ^ 2.942)}
+S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)}
+S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)}
+S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)}
+
+  RoughyWeight<- Roughy%>%
+    filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(weight_g = weight_kg *1000) %>%
+    mutate(year=as.factor(year))
+
+
+f2.6<- ggplot(data = RoughyWeight,
+       mapping = aes(x  = SLadj_cm,
+                     y = weight_g, colour = sex)) +
+  scale_colour_manual(values = c("red", "blue"))+
+  geom_point(size = .3)+
+  scale_x_continuous(breaks = seq(20,50,4),limits = c(20,50))+
+  ylab("weight (g)")+
+  xlab("Standard length (cm)")+ 
+  stat_function(fun = S2019F_fun, colour="red")+
+  stat_function(fun = S2019M_fun, colour = "blue") +
+  stat_function(fun = Lyle_com, colour ="black")+
+  stat_function(fun = S2019_fun, colour ="orange")+
+  theme_bw()+
+  annotate('text', x = 22, y = 3800, size =4,hjust =0,
+           label = expression(paste("Weight"["Lyle sex combined"]^{}, 
+                                    " = 0037 * Length"^{2.942})))+
+  
+  
+  annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
+           label = expression(paste("Weight"["2019 sex combined"]^{},
+                                    " = 0056 * Length"^{2.850})))+
+  
+  annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
+           label = expression(paste("Weight"["2019 Females"]^{}, " = 0.071 * Length"^{2.769}))) +
+  
+  annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
+           label = expression(paste("Weight"["2019 Males"]^{}, " = 0.073 * Length"^{2.794})))
+  
+           
+
+
+
+
+f2.6
+  
+ # facet_wrap(~year)
+
+#Your figure and table captions are automatically numbered and can be referenced in the text
+#if needed: see eg. Table \@ref(tab:mytable) and Figure \@ref(fig:standard-plot)
+
+
+
+ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
+```
+
+```{r myfig2.7}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+Lyle_com <- function(x) {(0.037 * (x) ^ 2.942)/1000}
+
+
+  RoughyWeight<- Roughy%>%
+    #filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(year=as.factor(year))
+
+
+
+f2.7<- ggplot(data = RoughyWeight,
+       mapping = aes(x  = Length,
+                     y = weight_kg, colour = year)) +
+  geom_point()+
+  #geom_smooth(method="glm",
+  #          method.args=list(family=gaussian(link="log")), colour = "blue", linetype = 2, size = .5)+
+   ylab("weight (kg)")+
+  xlab("Standard length (cm)")+            
+  stat_function(fun = Lyle_com, colour ="black")+
+ facet_wrap(~year)
+
+#Your figure and table captions are automatically numbered and can be referenced in the text
+#if needed: see eg. Table \@ref(tab:mytable) and Figure \@ref(fig:standard-plot)
+
+f2.7
+
+ggsave("Figures/f2.7.emf",f2.7) # saves the plot to file :)
 ```
