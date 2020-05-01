@@ -1,0 +1,43 @@
+---
+title: "2019 word"
+author: "Caroline Sutton"
+date: "25/04/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+#load libraries
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+#read in tidy data from results folder
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
+
+
+#remame and select columns
+Roughy <- Roughy %>% 
+  mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
+  mutate(Ground = Area_MS) %>% 
+  drop_na(Ground) %>% 
+  drop_na(Length) %>% 
+  drop_na(sex) %>% 
+  select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg, Otoliths)
+```
+
+
+### summary table
+
+```{r, Tbl, tab.cap = "t" }
+Roughy_DataSummary <- Roughy %>% 
+  dplyr::group_by(year, Ground,sex) %>% 
+  dplyr::summarise(n= n())
+
+#Roughy_DataSummary <- spread(Roughy_DataSummary, key = year,value = n)
+
+kable(Roughy_DataSummary, caption = "Table summary")
+```
+.
