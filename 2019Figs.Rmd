@@ -33,17 +33,20 @@ Roughy_1 <- Roughy %>%
   #drop_na(Length) %>% 
   drop_na(sex) %>% 
   select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths)
+
+Roughy_2 <- filter(Roughy_1, year ==2019)
 ```
 
-```{r}
-  
-Roughyminmax <- Roughy_1 %>% 
+```{r, echo=FALSE}
+#average values for 2019
+ Roughy_2 %>% 
   dplyr::group_by(Ground,sex) %>% 
   dplyr::summarise(round(mean(Length),digits = 2))
 
-Roughyminmax
+
 ```
 # Introduction
+
 Summary Data, Tables and Figures for Eastern Zone Roughy Survey 2019
 
 
@@ -63,29 +66,10 @@ Roughy_DataSummary <- spread(Roughy_DataSummary, key = year,value = n)
 knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width = "100%")
-```
-
-## Summary for otoliths data for updating Table 2.3
-```{r}
-
-Roughy_otoliths <- Roughy_2 %>% 
-  dplyr::group_by(Ground,Shot, sex) %>% 
-  dplyr::summarise(o =sum(Otoliths, na.rm = TRUE)) %>% 
-  spread(sex,o) %>% 
-  mutate('T_o' = F + M)
-
-Roughy_otoliths <- Roughy_2 %>% 
-  dplyr::group_by(Ground,sex) %>% 
-  dplyr::summarise(o =sum(Otoliths, na.rm = TRUE)) %>% 
-  spread(Ground,o) 
-Roughy_otoliths
-
-
-
-```
-
-## Table 2.4 (needs updating for future surveys to include shot without measures in "OR.R")
+``## Table 2.4 (needs updating for future surveys to include shot without measures in "OR.R")
 ```{r table 2.4, echo=FALSE}
+#NOTE THIS TABLE MUSt BE REMOVED BEFORE KNIT as IT HAS A GROUPING PROB. OK if just in R
+
 #need to update code to include shot weights for shots where fish were not measured **
 # fitler data for 2019
 Roughy_2 <- Roughy_1 %>% 
@@ -130,6 +114,7 @@ knitr::kable(head(t2.4, n=14), format = "html", caption = "Table 2.4 Summary of 
   kableExtra::scroll_box(width  = "100%")
 ```
 
+
 ### Figure 2.1 
 Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2019. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
 ```{r myfig2.1}
@@ -168,7 +153,7 @@ ggsave("Figures/f2.1.jpg")
 ```
 
 ### length data table
-```{r}
+```{r, echo=FALSE}
 Roughy_2_length_GroundbySex <- summarySE(Roughy_2, measurevar = "Length", 
                                       groupvars = c("Ground","sex"))
 Roughy_2_length_GroundbySex
@@ -178,7 +163,7 @@ Roughy_2_length_Ground <- summarySE(Roughy_2, measurevar = "Length",
 Roughy_2_length_Ground
 ```
 
-## Figure 2.2
+### Figure 2.2
 Standard Length by sex and ground
 ```{r myfig2.2}
 OR_LF <- Roughy_2 %>% # This is the ONE
@@ -200,7 +185,7 @@ ggsave(filename = "Figures/f2.2.emf")
 ggsave(filename = "Figures/f2.2.jpg")
 ```
 
-## Figure 2.3
+### Figure 2.3
 Cummunlative Frequency
 ```{r myfig2.3}
 
@@ -219,7 +204,7 @@ plot(f2.3)
 ggsave(filename = "Figures/f2.3.emf")
 ```
 
-## Table 2.5 
+### Table 2.5 
 Mode and Numbers of fish by Year, Ground, Sex
 ```{r Table2.5}
 #need to group by Ground and sex togehter so need to make a combined variable
@@ -267,6 +252,7 @@ knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fis
 
 
 ### Figure 2.4
+The average Standard Length (cm) by shot for female and males fish for the Eastern Zone spawning population at St Helens and St Patricks for 2019. Error bars are 95% confidence intervals. 
 ```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 
 library(gridExtra) #for function grid.arrange
@@ -367,7 +353,7 @@ write.csv(t2.6,"Figures/t2.6.csv")
 
 #tab_df(OR2019_sum,file = "Figures/t2.3.doc") # create and save word doc . Must # as once created
 
-knitr::kable(head(t2.6, n=14), format = "html", caption = "Table 2.6", 
+knitr::kable(head(t2.6, n=14), format = "html", caption = "Table 2.6 Average weight (kg) by shot for male and female fish for the 2019 Orange Roughy Eastern Zone spawning population. SD = Standard Deviation (±) of the sample, n = sample size.", 
              col.names = c("Ground","Shot","Avg weight (kg)", "SD","nos","Avg weight (kg)", "SD", "nos")) %>% 
   add_header_above(c("","", "Female fish "= 3, "Male Fish" = 3)) %>% 
   kableExtra::kable_styling("striped") %>%
@@ -421,6 +407,7 @@ write.csv(t2.7,"Figures/t2.7.csv")
 ```
 
 ### Figure 2.5
+Gonad maturity stage for the 2019 Eastern Zone spawning population, showing the proportion of immature, ripe and spent fish in each shot for males and females at St Helens and St Patricks. See table 2-2 for key to stages.
 ```{r f2.5}
 #need to group the frame by sex 
 Roughy_4 <- Roughy_1%>%
@@ -517,6 +504,7 @@ ggsave("Figures/f2.5.emf",f2.5) # saves the plot to file :)
 
 
 ### Figure 2.5b
+Gonad maturity stage for the 2019 Eastern Zone spawning population, showing the number of immature, ripe and spent fish in each shot for males and females at St Helens and St Patricks. See table 2-2 for key to stages. Numbers in each column represent the sample size for each shot. 
 ```{r my fig2.5b}
 
 
@@ -572,18 +560,7 @@ ggsave("Figures/f2.5b.emf",f2.5b) # saves the plot to file :)
 
 ```
 
-### Table 2.8
-```{r t2.8}
- 
- t2.8 <- bind_rows(t2.8a,t2.8b,t2.8c) %>% 
- rename(c("Total" = "nos fish", "Fratio"= "F ratio", "Mratio" = "M ratio")) 
 
-knitr::kable(tail(t2.8, n = 9), format = "html", caption = "t2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
-  kableExtra::kable_styling("striped") %>%
-  kableExtra::scroll_box(width = "100%")
-write.csv(t2.8,"Figures/t2.8.csv")
-
-```
 
 ### Table 2.8
 ```{r t2.8}
@@ -605,7 +582,7 @@ write.csv(t2.8,"Figures/t2.8.csv")
     mutate(sex = c("F","M"))
   
 # table for Grounds combined sexes  
- OR_SHSPbg <- OR_2_p %>%                                      
+ OR_SHSPbg <- Roughy_2 %>%                                      
     dplyr::group_by(Ground) %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
@@ -644,7 +621,8 @@ write.csv(t2.8,"Figures/t2.8.csv")
 
 ```
 
-##Figure 2.6
+### Figure 2.6
+Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population, 2019 both grounds combined,  showing the predicted values (plotted black line) from Lyle (1991).
 
 ```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
@@ -696,6 +674,8 @@ ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
 ```
 
+### Figure 2.7
+Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population from 1987 to 2019 for both grounds combined, showing the predicted values (plotted black line) from Lyle (1991).
 ```{r myfig2.7}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
 OR_Weight_series <-Roughy_1 %>% 
@@ -723,8 +703,8 @@ plot(f2.7)
 
 
 ### Table 2.9
-```{r mytable2.9}
-OR2019w <- Roughy %>% 
+```{r t2.9}
+OR2019w <- Roughy_1 %>% 
   filter(year == 2019) %>% 
   drop_na(weight_kg)
 
@@ -780,4 +760,70 @@ knitr::kable(tail(t2.9, n = 9), format = "html", caption = "Table 2.9 The propor
   kableExtra::scroll_box(width = "100%")
 
 write.csv(t2.9,"Figures/t2.9.csv")
+```
+
+### Figure 2.7
+```{r f2.7}
+#Age data from Eastern zone OR
+
+
+
+Age <- read_csv("Data/ORAge87to16.csv")
+Age_new <- read_csv("Data/ORAge_2019.csv")
+
+
+Age_1 <- Age %>% 
+  filter(month == "Jul") %>% 
+  select(Zone, Ground = Location1, Year, month, Sex= Sex_no, Length = Length_1, O=`L_Otolith wgt`) %>% 
+  filter(Sex >0) %>% 
+  filter(Sex <3)
+
+Age_1 %>% 
+  dplyr::group_by(Sex) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE))
+
+Age_new_1 <- Age_new %>% 
+  select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O= `Oto_Wght (g)`) %>% 
+  mutate(Length_cm = Length_mm/10) %>% 
+  select(-Length_mm)
+
+Age_new_1 %>% 
+  dplyr::group_by(Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE))
+
+Age_2 <- Age_1 %>% 
+  bind_rows(Age_new_1) %>% 
+  mutate(Sex= as.factor(Sex)) %>% 
+  mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
+  mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
+
+Age_2 %>% 
+  dplyr::group_by(Ground,Sex) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE))
+
+Age_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE)   
+
+pd <- position_dodge(0.5) # move position horizontally b/c of overlap
+
+f2.7 <- ggplot(Age_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average otolith weight (g)")+
+  scale_y_continuous(breaks = seq(0,0.3,.04),limits = c(0,0.28))+
+  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  theme_bw()+
+  theme(legend.position = c(.15, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+
+
+plot(f2.7)
+ggsave("Figures/f2.7.emf")
+ggsave("Figures/f2.7.jpg")
 ```
