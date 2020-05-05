@@ -1,0 +1,41 @@
+---
+---
+title: "Age"
+author: "Caroline Sutton"
+date: "03/12/2019"
+output:
+  html_document:
+    code_folding: hide
+  word_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo=TRUE,
+  warning = FALSE,
+  message = FALSE,
+  results = 'asis',
+  fig.align = 'center')
+
+#Load libraries
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+
+#read in tidy data from results folder
+Age <- read_csv("Data/ORAge87to16.csv")
+                
+Age_new <- read_csv("Data/ORAge_2019.csv")
+
+
+Age %>% 
+  filter(month =="Jul") %>% 
+  select(Zone,Year,month, Ground = Location1, Sex,Stage,
+         `L_Otolith wgt`,`R_Otolith wgt`,`Original client reference`, 
+         Shot= `Shot no (from Original client ref)`) 
+
+
+Age_new %>% 
+  select(Zone,Year, month, Ground = `Location / port descriptor`, Sex,Stage, `Oto_Wght (g)`)
+
+ ```
