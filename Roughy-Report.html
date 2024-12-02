@@ -452,7 +452,7 @@ summary {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>Summary Data, Tables and Figures for Eastern Zone Roughy Survey 2019</p>
+<p>Summarys Data, Tables and Figures for Eastern Zone Roughy Survey 2019</p>
 <div id="table-and-figures" class="section level2">
 <h2>Table and Figures</h2>
 </div>
@@ -465,7 +465,7 @@ summary {
 Data_summary &lt;- spread(Data_summary, key = year,value = n)
 
 
-knitr::kable(tail(Data_summary, n = 5), format = &quot;html&quot;, caption = &quot;Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex&quot;) %&gt;% 
+knitr::kable(tail(Data_summary, n = 5),format = &quot;html&quot;,caption = &quot;Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex&quot;) %&gt;% 
   kableExtra::kable_styling(&quot;striped&quot;) %&gt;%
   kableExtra::scroll_box(width = &quot;100%&quot;)</code></pre>
 <div style="border: 1px solid #ddd; padding: 5px; overflow-x: scroll; width:100%; ">
@@ -799,9 +799,9 @@ OR2019_sum &lt;- OR2019 %&gt;%
   dplyr::group_by(Ground,Shot,Date, &#39;Shot Weight (kg)&#39; = ShotWeight_kg,sex) %&gt;% 
   dplyr::summarise(num_rows = n()) %&gt;% 
   spread(sex,num_rows) %&gt;% 
-  mutate(`number of fish` = F + M)
+  mutate(`Total fish` = F + M)
 
-
+#tab_df(OR2019_sum,file = &quot;Figures/t2.3.doc&quot;) # create and save word doc . Must # as once created
 
 knitr::kable(head(OR2019_sum, n=14), format = &quot;html&quot;, caption = &quot;Table 2.3 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019&quot;) %&gt;% 
   kableExtra::kable_styling(&quot;striped&quot;) %&gt;%
@@ -832,7 +832,7 @@ F
 M
 </th>
 <th style="text-align:right;">
-number of fish
+Total fish
 </th>
 </tr>
 </thead>
@@ -2458,7 +2458,7 @@ all fish
 </tbody>
 </table>
 </div>
-<pre class="r"><code>#ggsave(&quot;Figures/t2.8.emf&quot;)</code></pre>
+<pre class="r"><code>#ggsave(&quot;Figures/t2.8.doc&quot;)</code></pre>
 <p>##Figure 2.6</p>
 <pre class="r"><code>Lyle_com &lt;- function(x) {(0.037 * (x) ^ 2.942)/1000}
 

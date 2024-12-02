@@ -39,6 +39,20 @@ Roughy <- Roughy %>%
   drop_na(sex) %>% 
   select(Ground, year, Shot, Date,sex,stage, Length,ShotWeight_kg, weight_kg)
 ```
+### table 2.3a
+```{r table 2.3a}
+Roughy_year <- filter(Roughy, year == 2019)
+Roughy_year_sum <- Roughy_year %>% 
+  dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
+  dplyr::summarise(num_rows =n()) %>% 
+  spread(sex,num_rows) %>% 
+  mutate("Total" = F + M)
+
+#total for SH
+T_SH <- filter(Roughy_year_sum,Ground == "St Helens")
+
+T_SP<- filter(Roughy_year_sum,Ground == "St Patricks")
+```
 
 ## Table 2.3
 ```{r table 2.3, echo=FALSE}
@@ -77,8 +91,8 @@ TotalS <- Roughy_2019_sum %>%
 Roughy_2019_sumtotals <- bind_rows(Roughy_2019_sum, TSH, TSP,TotalS) %>% # put all together for totals
   dplyr::rename("Shot Weight (kg" = ShotWeight_kg, "Total Nos Fish" = Total)
   
-OR2019_sum_g <- as_grouped_data(x=Roughy_2019_sumtotals,groups = c("Ground")) %>% 
-  mutate(Amount = if_else(is.na(Ground), "", as.character(Ground)))
+#OR2019_sum_g <- as_grouped_data(x=Roughy_2019_sumtotals,groups = c("Ground")) %>% 
+#  mutate(Amount = if_else(is.na(Ground), "", as.character(Ground)))
         
 t2.3 <- autofit(flextable(Roughy_2019_sumtotals))
 t2.3 <- theme_booktabs(t2.3)
@@ -92,7 +106,7 @@ t2.3
 ```
 
 
-## Table 2.4
+## Table 2.4 (actually 2.5 in document)
 
 ```{r table 2.4, echo=FALSE}
 Roughy_1 <- Roughy %>% 
