@@ -1,0 +1,68 @@
+---
+title: 'Orange Roughy Eastern Zone: Biological Summary from the Acoustic Survey 2024'
+author: "sutton"
+date: "2025-01-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(Rmisc)
+library(dplyr)
+library(devEMF)
+library(tidyr)
+library(kableExtra)
+library(knitr)
+library(cowplot)
+library(gridExtra)
+```
+
+load data
+```{r}
+# Biological Index
+RoughyIndex <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
+
+# 2024 data
+Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
+Shot2024 <- read_csv("Data/RoughyShot_EZ_2024.csv")
+```
+
+
+manipulate 2024 data
+
+```{r}
+Shot2024_ed <- Shot2024 %>% 
+  mutate(Shot2024, Shot = Vessel_number) %>% 
+  select(Shot,Location,Date,Lengths,Otoliths,Total_catch_weight_kg)
+
+Bio2024_1 <- Bio2024 %>% 
+  left_join(Shot2024_ed, by = "Shot") 
+```
+
+
+summarise bio data 2024
+
+```{r}
+BioSummary24 <- Bio2024_1 %>% 
+  dplyr::group_by(Shot,Sex) %>% 
+  dplyr::summarise(n= n())
+
+BioSummary24 <- spread(BioSummary24, key = Sex,value = n)
+```
+
+
+add other required fields
+
+```{r}
+BioSummary24 <- BioSummary24 %>% 
+  left_join(Shot2024_ed, by= "Shot") %>% 
+  select(Ground = Location, Shot, Date, Total_catch_weight_kg, F, M, Total_Fish_Measured = Lengths, Otoliths_taken = Otoliths)
+```
+
+Write data
+```{r}
+write.csv(BioSummary24,"C:/Users/sut109/OneDrive - CSIRO/roughy - working/Figures/t2.4_sumshot_24.csv")
+```
