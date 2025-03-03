@@ -23,11 +23,14 @@ library(gridExtra)
 load data
 ```{r}
 # Biological Index
-RoughyIndex <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
 
+
+         
 # 2024 data
 Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
 Shot2024 <- read_csv("Data/RoughyShot_EZ_2024.csv")
+discard2024 <- read_csv("Data/Roughy2024_discards.csv")
 ```
 
 
@@ -42,8 +45,35 @@ Bio2024_1 <- Bio2024 %>%
   left_join(Shot2024_ed, by = "Shot") 
 ```
 
+# Index data - add new data
 
-summarise bio data 2024
+explore fields
+```{r}
+colnames(Roughy)
+colnames(Bio2024)
+```
+add relevant columns
+
+```{r}
+
+Bio <- Bio2024_1 %>%
+  mutate(zone = "Eastern", year = 2024, Area_MS = Location, Survey = Voyage, stage = Gonad_Stage,
+         SLadj_cm = Length_cm)
+
+ Bio_1 <- Bio %>% 
+   select(zone, year, Area_MS, Survey, Shot, sex = Sex, stage, SLadj_cm, Otoliths, vessel = Vessel, Date= Date.x)
+```
+
+append to the index data
+
+```{r}
+Roughy_1 <- Roughy %>% 
+  bind_rows(Bio_1)
+```
+
+# Table and Figures
+
+## summarise bio data 2024
 
 ```{r}
 BioSummary24 <- Bio2024_1 %>% 
@@ -62,7 +92,53 @@ BioSummary24 <- BioSummary24 %>%
   select(Ground = Location, Shot, Date, Total_catch_weight_kg, F, M, Total_Fish_Measured = Lengths, Otoliths_taken = Otoliths)
 ```
 
+add discards
+
+select relevant fields
+```{r}
+discard2024 <- discard2024 %>% 
+  select(Shot,retained,discarded)
+```
+ 
+ join to summary
+ 
+```{r}
+BioSummary24 <- BioSummary24 %>% 
+  left_join(discard2024, by = "Shot")
+```
+
 Write data
 ```{r}
-write.csv(BioSummary24,"C:/Users/sut109/OneDrive - CSIRO/roughy - working/Figures/t2.4_sumshot_24.csv")
+#write.csv(BioSummary24,"C:/Users/sut109/OneDrive - CSIRO/roughy - working/Figures/t2.4_sumshot_24.csv")
+```
+
+
+
+
+---
+### summary table
+
+```{r mytable, out.width='100%', echo = T}
+
+
+#remame and select columns
+Roughy_1 <- Roughy %>% 
+  mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
+  mutate(Ground = Area_MS) %>% 
+  drop_na(Ground) %>% 
+  #drop_na(Length) %>% 
+  drop_na(sex) %>% 
+  select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths)
+
+
+Roughy_DataSummary <- Roughy_1 %>% 
+  dplyr::group_by(year, Ground,sex) %>% 
+  dplyr::summarise(n= n())
+
+Roughy_DataSummary <- spread(Roughy_DataSummary, key = year,value = n)
+
+
+knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
 ```
