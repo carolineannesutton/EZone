@@ -412,6 +412,7 @@ Roughy_4 <- Roughy_1%>%
   mutate(stage = as.character(stage))%>% 
  # mutate(Shot = as.character(Shot)) %>% 
   mutate(Date= as.Date(Date,"%d/%m")) %>% 
+  #select(-Date) %>% 
   group_by(sex)
 
 OR2024_sumFH <- Roughy_2_lengthsum %>% 
@@ -423,18 +424,37 @@ OR2024_sumFP <- Roughy_2_lengthsum %>%
 OR2024_sumMP <- Roughy_2_lengthsum %>% 
   filter(Ground == "St Patricks", sex == "M")
 
+# Fsh <- ggplot(Roughy_4 %>% 
+#   filter(Ground == "St Helens", sex == "F"),
+#   aes(x = Date, fill = stage))+
+#   geom_bar(position = "fill")+
+#   scale_fill_manual(values = c("yellow","orange","red","grey"))+
+#   theme(axis.text=element_text(size=9))+
+#  facet_grid(.~Shot, scales = "free_x", switch ="x")+
+#   theme(strip.text.x = element_text(size =8),
+#         panel.spacing = unit(0,"mm"))+ # remove spacing between facets
+#   theme(legend.position = "none")+
+#   theme(axis.title.y = element_text(size = 11))+
+#    theme(axis.title.x = element_text(size = 11),  
+#         axis.ticks = element_blank()) +
+#   ylab("Proportion female fish")+
+#   xlab("")
+
 Fsh <- ggplot(Roughy_4 %>% 
   filter(Ground == "St Helens", sex == "F"),
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
   scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  theme(axis.text=element_text(size=9))+
+  theme(axis.text= element_blank())+
  facet_grid(.~Shot, scales = "free_x", switch ="x")+
   theme(strip.text.x = element_text(size =8),
         panel.spacing = unit(0,"mm"))+ # remove spacing between facets
-  theme(legend.position = "none")+
-  theme(axis.title.y = element_text(size = 11))+
-   theme(axis.title.x = element_text(size = 11),  
+  #theme(legend.position = "none")+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+  theme(axis.title.y = element_text(size = 8))+
+   theme(axis.title.x = element_text(size = 8),  
         axis.ticks = element_blank()) +
   ylab("Proportion female fish")+
   xlab("")
@@ -443,16 +463,20 @@ Msh <- ggplot(Roughy_4 %>%
   filter(sex == "M",Ground =="St Helens"),
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
-  scale_fill_manual(values = c("white","yellow","orange","black","black"))+
-  theme(axis.text=element_text(size=9))+
-  facet_grid(.~Shot, scales = "free_x", switch ="x")+
-  theme(legend.position = "none",
-        strip.text.x = element_text(size =8),
+  scale_fill_manual(values = c("beige","yellow","orange","black","black"))+
+  theme(axis.text= element_blank())+
+ facet_grid(.~Shot, scales = "free_x", switch ="x")+
+    theme(strip.text.x = element_text(size =8),
         panel.spacing = unit(0,"mm"), # remove spacing between facets
-        axis.title.x = element_text(size = 11),  
-        axis.ticks = element_blank(),
-        axis.title.y = element_text(size = 11))+
-  xlab("Shot Number and Date, St Helens")+
+        axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank())+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+    theme(axis.title.y = element_text(size = 8))+
+     theme(axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank()) +
+  xlab("Shot Number, St Helens")+
   ylab("Proportion male fish")
 
 Fsp <- ggplot(Roughy_4 %>% 
@@ -461,12 +485,15 @@ Fsp <- ggplot(Roughy_4 %>%
   geom_bar(position = "fill")+
   labs(fill = "stage")+
   scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  theme(axis.text=element_text(size=9))+
+ theme(axis.text= element_blank())+
   facet_grid(.~Shot, scales = "free_x", switch ="x")+
   theme(strip.text.x = element_text(size =8),
         panel.spacing = unit(0,"mm"))+ # remove spacing between facets
-   theme(axis.title.x = element_text(size = 11),  
+   theme(axis.title.x = element_text(size = 8),  
         axis.ticks = element_blank()) +
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
    ylab("")+
    xlab("")
 
@@ -475,14 +502,17 @@ Msp <- ggplot(Roughy_4 %>%
   aes(x = Date, fill = stage))+
   geom_bar(position = "fill")+
     labs(fill = "stage")+
-    scale_fill_manual(values = c("white","yellow","orange","black","black"))+
-    theme(axis.text=element_text(size=9))+
+    scale_fill_manual(values = c("yellow","orange","black","black"))+
+    theme(axis.text= element_blank())+
   facet_grid(.~Shot, scales = "free_x", switch ="x")+
     theme(strip.text.x = element_text(size =8),
         panel.spacing = unit(0,"mm"), # remove spacing between facets
-        axis.title.x = element_text(size = 11),  
+        axis.title.x = element_text(size = 8),  
         axis.ticks = element_blank())+
-  xlab("Shot Number and Date, St Patricks")+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+  xlab("Shot Number, St Patricks")+
   ylab("")
 
 plot(Fsh)
@@ -490,68 +520,122 @@ plot(Msh)
 plot(Fsp)
 plot(Msp)
 
-grid.arrange(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(12,12), heights= c(10,10)) #arrange plot into a grid (this does not save it only plots to view)
+grid.arrange(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(14,10), heights= c(8,8)) #arrange plot into a grid (this does not save it only plots to view)
 
 f2.5 <- arrangeGrob(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(5,6), heights= c(7,7)) # creates plot as an object
 
 ggsave("Figures/GonadStage.emf",f2.5) # saves the plot to file :)
+ggsave("Figures/GonadStage.jpeg",f2.5) # saves the plot to file :)
 ```
 
+### Table: The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population.
 
-
-
-### Figure 2.5b
-```{r my fig2.5b}
-
-
-Fsh1 <- ggplot(Roughy_4 %>% 
-  filter(Ground == "St Helens", sex == "F"),
-  aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
-  geom_bar()+
-  scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL),size =3, data = OR2019_sumFH)+
- ylab("Female fish")+
-  xlab("")
-
-
-Msh1 <- ggplot(Roughy_4 %>% 
-  filter(sex == "M",Ground =="St Helens"),
-    aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
-  geom_bar()+
-  scale_fill_manual(values = c("white","yellow","orange","black","grey"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL),size=3, data = OR2019_sumMH)+
-  xlab("Shot Number, St Helens")+
-  ylab("Male fish")
+```{r t2.8}
   
+# table for SH proportion by sex
+  OR_sHg <- Roughy_2 %>%   
+    filter(Ground == "St Helens") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
 
-Fsp1 <- ggplot(Roughy_4 %>% 
-  filter(sex == "F",Ground =="St Patricks"),
-  aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
-  geom_bar()+
-  scale_fill_manual(values = c("yellow","orange","red","grey"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), size=3, data = OR2019_sumFP)+
-   ylab("")+
-   xlab("")
+#table for SP proportion by sex
+  OR_sPg <- Roughy_2 %>%                                        
+    filter(Ground == "St Patricks") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+# table for Grounds combined sexes  
+ OR_SHSPbg <- Roughy_2 %>%                                      
+    dplyr::group_by(Ground) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = "M & F")
 
-Msp1 <- ggplot(Roughy_4 %>% 
-  filter(sex == "M",Ground =="St Patricks"),
-    aes(x = reorder(Shot, sort(as.numeric(Shot))),fill = stage))+
-  geom_bar()+
-  scale_fill_manual(values = c("white","yellow","orange","black","black"))+
-  geom_text(aes(Shot, N +20, label = N, fill = NULL), size=3, data = OR2019_sumMP)+
-  xlab("Shot Number, St Patricks")+
-  ylab("")
+# table for sex combined grounds 
+ OR_sex <- Roughy_2 %>%                                      
+    dplyr::group_by(sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(Ground = "SH and SP")
+ 
+# table for survey
+ OR_survey <- Roughy_2 %>% 
+    #ungroup(sex) %>% 
+    dplyr::summarise(n = n(), mean = mean(round(Length))) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex ="all fish",
+           Ground = "Survey total")
+ 
+# bind all the tables together, create and rename some coloumns, round off new columns
+t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
+  mutate("Estimated weight (kg) based on Lyle et al (1991)" 
+         = (0.037*(mean)^2.942)/1000) %>% 
+  dplyr::rename("No of fish" = n, "Avg length (cm)" 
+                = mean, "Spawning Ground"= Ground, "Prop"=Proportion) %>% 
+  dplyr::mutate_at(4:6, funs(round(.,2)))  
 
-#plot(Fsh)
-#plot(Msh)
-#plot(Fsp)
-#plot(Msp)
+knitr::kable(tail(t2.8, n = 9), format = "html", caption = "Table 2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
 
-grid.arrange(Fsh1,Fsp1,Msh1, Msp1, ncol=2, nrow=2, widths= c(5,4.5), heights= c(7,7)) #arrange plot into a grid (this does not save it only plots to view)
+  kableExtra::kable_styling("striped") %>%
 
-f2.5b <- arrangeGrob(Fsh1,Fsp1,Msh1, Msp1, ncol=2, nrow=2, widths= c(5,4.5), heights= c(7,7)) # creates plot as an object
+  kableExtra::scroll_box(width = "100%")
 
-                 
-ggsave("Figures/f2.5b.emf",f2.5b) # saves the plot to file :)
-
+write.csv(t2.8,"Figures/Prop_sex_Lylewt.csv")
 ```
+
+### roughy weight - no weight for 2024
+
+```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+Lyle_com <- function(x) {(0.037 * (x) ^ 2.942)}
+S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)}
+S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)}
+S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)}
+
+  RoughyWeight<- Roughy%>%
+    filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(weight_g = weight_kg *1000) %>%
+    mutate(year=as.factor(year))
+
+
+f2.6<- ggplot(data = RoughyWeight,
+       mapping = aes(x  = SLadj_cm,
+                     y = weight_g, colour = sex)) +
+  scale_colour_manual(values = c("red", "blue"))+
+  geom_point(size = .3)+
+  scale_x_continuous(breaks = seq(20,50,4),limits = c(20,50))+
+  ylab("weight (g)")+
+  xlab("Standard length (cm)")+ 
+  stat_function(fun = S2019F_fun, colour="red")+
+  stat_function(fun = S2019M_fun, colour = "blue") +
+  stat_function(fun = Lyle_com, colour ="black")+
+  stat_function(fun = S2019_fun, colour ="orange")+
+  theme_bw()+
+  
+  annotate('text', x = 22, y = 3800, size =4,hjust =0,
+           label = expression(paste("Weight"["Lyle sex combined"]^{}, 
+                                    " = 0037 * Length"^{2.942})))+
+  
+  annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
+           label = expression(paste("Weight"["2019 sex combined"]^{},
+                                    " = 0056 * Length"^{2.850})))+
+  
+  annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
+           label = expression(paste("Weight"["2019 Females"]^{},
+                                    "= 0.071 * Length"^{2.769}))) +
+  
+  annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
+           label = expression(paste("Weight"["2019 Males"]^{},
+                                    " = 0.073 * Length"^{2.794})))
+
+
+ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
+plot(f2.6)
+```
+
