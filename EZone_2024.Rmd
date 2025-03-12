@@ -22,6 +22,7 @@ library(kableExtra)
 library(knitr)
 library(cowplot)
 library(gridExtra)
+library(lubridate)
 ```
 
 load data
@@ -29,7 +30,7 @@ load data
 # Biological Index
 Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
 
-Age2019 <- read_csv("Date/RoughyAge2019.csv") 
+Age2019 <- read_csv("Data/RoughyAge2019.csv")
          
 # 2024 data
 Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
@@ -644,18 +645,50 @@ ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
 ```
 
-## Age data
+# Age data
 
-#Age data from Eastern zone OR
+## Age data from Eastern zone OR
 
 read in age data
 ```{r}
 Age <- read_csv("Data/ORAge87to16.csv")
 Age_otwgt2019 <- read_csv("Data/ORAge_2019_otwgt.csv")
 Age2019 <- read_csv("Data/RoughyAge2019.csv")
+Age_otwgt2024 <- read_csv("Data/ORAge_2024_otwgt.csv")
 ```
 
-#select fields from OR Age series
+Data wrangle the 2024 data
+```{r}
+colnames(Age_otwgt2019)
+colnames(Age_otwgt2024)
+```
+
+### bind new age data together
+
+select columns from 2019
+```{r}
+Age_otwgt2019 <- Age_otwgt2019 %>% 
+   select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O = `Oto_Wght (g)`)
+```
+
+select columns from 2024
+```{r}
+Age_otwgt2024 <- Age_otwgt2024 %>% 
+  select(Zone, Shot, Sex,Length_mm = Length_1, O = `Oto_Wght`) %>% 
+  left_join(Shot2024_ed, by = "Shot")
+```
+
+date wrangle 2024 data
+```{r}
+Age_otwgt2024 <- Age_otwgt2024 %>% 
+  select(Zone, Location, Shot, Sex,Length_mm, O, Date) %>%
+  mutate(Month= as.Date(Date,"%m"))
+  
+  
+```
+
+select fields from OR Age series
+
 ```{r}
 Age_1 <- Age %>% 
   filter(month == "Jul") %>% # ensuring spawning population
@@ -667,31 +700,65 @@ Age_1 <- Age %>%
   filter(Mark != "BP")
 ```
 
-#
+summarise
+
+```{r}
 Age_1 %>% 
   dplyr::group_by(Sex,Year) %>% 
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE))
+```
 
-Age_new_1 <- Age_new %>% 
-  select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O= `Oto_Wght (g)`) %>% 
+data wrangle lengths
+
+```{r}
+Age_otwgt2019 <- Age_otwgt2019 %>% 
+  select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O = `Oto_Wght (g)`) %>% 
   mutate(Length_cm = Length_mm/10) %>% 
-  select(-Length_mm) %>% 
+  select(-Length_mm)  
   #filter(Age >0) no age data currently
+```
 
-Age_new_1 %>% 
+summarise otolith weight data - 2024 otolith data to explore
+
+```{r}
+Age_otwgt2019 %>% 
   dplyr::group_by(Sex,Year) %>% 
   dplyr::summarise(mean(O,na.rm = TRUE))
+```
 
+add 2019 otolith wegight data to Age index data
+
+```{r}
 Age_2 <- Age_1 %>% 
-  bind_rows(Age_new_1) %>% 
+  bind_rows(Age_otwgt2019) %>% 
   mutate(Sex= as.factor(Sex)) %>% 
   mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
   mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
+``` 
 
+
+summarise to check data
+
+```{r}
 Age_2 %>% 
   dplyr::group_by(Ground,Sex) %>% 
   dplyr::summarise(mean(O,na.rm = TRUE))
+```
 
+Data wrangle the 2024 data
+```{r}
+colnames(Age_otwgt2019)
+colnames(Age_otwgt2024)
+```
+select columns 
+```{r}
+Age_otwgt2024 <- Age_otwgt2024 %>% 
+  select(Zone,)
+  
+Graphing
+```
+
+```{r}
 O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
 Age_Sum <- summarySE(Age_2, measurevar = "Age", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
 
@@ -736,4 +803,4 @@ plot(f2.7)
 plot(f2.8)
 ggsave("Figures/f2.7.emf")
 ggsave("Figures/f2.7.jpg")
-
+```
