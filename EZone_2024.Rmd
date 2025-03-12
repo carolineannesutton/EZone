@@ -5,6 +5,10 @@ date: "2025-01-28"
 output: html_document
 ---
 
+# Set up
+
+libraries required
+
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(ggplot2)
@@ -25,7 +29,7 @@ load data
 # Biological Index
 Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
 
-
+Age2019 <- read_csv("Date/RoughyAge2019.csv") 
          
 # 2024 data
 Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
@@ -44,7 +48,7 @@ Bio2024_1 <- Bio2024 %>%
   left_join(Shot2024_ed, by = "Shot") 
 ```
 
-# Index data - add new data
+## Index data - add new data
 
 explore fields
 ```{r}
@@ -72,7 +76,7 @@ Roughy <- Roughy %>%
 
 # Table and Figures
 
-## summarise bio data 2024
+## Summarise bio data 2024
 
 ```{r}
 BioSummary24 <- Bio2024_1 %>% 
@@ -340,6 +344,7 @@ knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fis
 
 ```
 
+## Average Length by Shot
 ### Figure 2.4
 ```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 
@@ -638,4 +643,97 @@ f2.6<- ggplot(data = RoughyWeight,
 ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
 ```
+
+## Age data
+
+#Age data from Eastern zone OR
+
+read in age data
+```{r}
+Age <- read_csv("Data/ORAge87to16.csv")
+Age_otwgt2019 <- read_csv("Data/ORAge_2019_otwgt.csv")
+Age2019 <- read_csv("Data/RoughyAge2019.csv")
+```
+
+#select fields from OR Age series
+```{r}
+Age_1 <- Age %>% 
+  filter(month == "Jul") %>% # ensuring spawning population
+  select(Zone, Ground = Location1, Year, month, Sex= Sex_no, Length_cm = Length_1, Age,O=`L_Otolith wgt`, Mark =`Acoustic Group/ Aditional comment`) %>% 
+  filter(Sex >0) %>%  # only males and females
+  filter(Sex <3) %>%  # only males and females
+  filter(Age > 1)%>%     # only readable otoliths (-99 represents unreadable otoliths)
+  filter(Mark != "BS") %>% 
+  filter(Mark != "BP")
+```
+
+#
+Age_1 %>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE))
+
+Age_new_1 <- Age_new %>% 
+  select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O= `Oto_Wght (g)`) %>% 
+  mutate(Length_cm = Length_mm/10) %>% 
+  select(-Length_mm) %>% 
+  #filter(Age >0) no age data currently
+
+Age_new_1 %>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE))
+
+Age_2 <- Age_1 %>% 
+  bind_rows(Age_new_1) %>% 
+  mutate(Sex= as.factor(Sex)) %>% 
+  mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
+  mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
+
+Age_2 %>% 
+  dplyr::group_by(Ground,Sex) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE))
+
+O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+Age_Sum <- summarySE(Age_2, measurevar = "Age", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+
+pd <- position_dodge(0.5) # move position horizontally b/c of overlap
+
+f2.7 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average otolith weight (g)")+
+  scale_y_continuous(breaks = seq(.05,0.3,.05),limits = c(0,0.28))+
+  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  theme_bw()+
+  theme(legend.position = c(.25, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+
+
+f2.8 <- ggplot(Age_Sum, aes(x = Year,y = Age, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = Age - ci, ymax= Age + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average age (years)")+
+  scale_y_continuous(breaks = seq(20,70,10),limits = c(20,70))+
+  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  theme_bw()+
+  theme(legend.position = c(.25, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+
+plot(f2.7)
+plot(f2.8)
+ggsave("Figures/f2.7.emf")
+ggsave("Figures/f2.7.jpg")
 
