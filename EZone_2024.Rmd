@@ -43,7 +43,7 @@ manipulate 2024 data
 
 ```{r}
 Shot2024_ed <- Shot2024 %>% 
-  select(Shot,Location,Date,Lengths,Otoliths,Total_catch_weight_kg)
+  select(Shot,Location,Day, Month, Year, Date,Lengths,Otoliths,Total_catch_weight_kg)
 
 Bio2024_1 <- Bio2024 %>% 
   left_join(Shot2024_ed, by = "Shot") 
@@ -645,118 +645,120 @@ ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
 ```
 
-# Age data
+# Age 
 
-## Age data from Eastern zone OR
-
-read in age data
+Read in age data
 ```{r}
-Age <- read_csv("Data/ORAge87to16.csv")
-Age_otwgt2019 <- read_csv("Data/ORAge_2019_otwgt.csv")
-Age2019 <- read_csv("Data/RoughyAge2019.csv")
-Age_otwgt2024 <- read_csv("Data/ORAge_2024_otwgt.csv")
+Age <- read_csv("Results/RoughyEZ_AgeIndex_1986to2019.csv")
+#Age_new <- read_csv("Data/ORAge_2019.csv")
+Age_new <- read_csv("Data/ORAge_2024_otwgt.csv")
+Age_2019 <- read_csv("Data/RoughyAge2019.csv")
 ```
 
-Data wrangle the 2024 data
+take a look at the data Age index data
 ```{r}
-colnames(Age_otwgt2019)
-colnames(Age_otwgt2024)
-```
-
-### bind new age data together
-
-select columns from 2019
-```{r}
-Age_otwgt2019 <- Age_otwgt2019 %>% 
-   select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O = `Oto_Wght (g)`)
-```
-
-select columns from 2024
-```{r}
-Age_otwgt2024 <- Age_otwgt2024 %>% 
-  select(Zone, Shot, Sex,Length_mm = Length_1, O = `Oto_Wght`) %>% 
-  left_join(Shot2024_ed, by = "Shot")
-```
-
-date wrangle 2024 data
-```{r}
-Age_otwgt2024 <- Age_otwgt2024 %>% 
-  select(Zone, Location, Shot, Sex,Length_mm, O, Date) %>%
-  mutate(Month= as.Date(Date,"%m"))
-  
-  
-```
-
-select fields from OR Age series
-
-```{r}
-Age_1 <- Age %>% 
-  filter(month == "Jul") %>% # ensuring spawning population
-  select(Zone, Ground = Location1, Year, month, Sex= Sex_no, Length_cm = Length_1, Age,O=`L_Otolith wgt`, Mark =`Acoustic Group/ Aditional comment`) %>% 
-  filter(Sex >0) %>%  # only males and females
-  filter(Sex <3) %>%  # only males and females
-  filter(Age > 1)%>%     # only readable otoliths (-99 represents unreadable otoliths)
-  filter(Mark != "BS") %>% 
-  filter(Mark != "BP")
-```
-
-summarise
-
-```{r}
-Age_1 %>% 
+Age%>% 
   dplyr::group_by(Sex,Year) %>% 
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE))
 ```
+need to add age data from 2019
+need to add otolith weight data from 2024
+ototlith age data not yet available for 2024
 
-data wrangle lengths
+## Add 2019 otolith age data 
+
+
+remove the 2019 data from the AgeIndex and add the 2019 data that inlcudes the "Age" data.
 
 ```{r}
-Age_otwgt2019 <- Age_otwgt2019 %>% 
-  select(Zone, Ground =`Location / port descriptor`, Year, month, Sex,Length_mm =Length_1, O = `Oto_Wght (g)`) %>% 
-  mutate(Length_cm = Length_mm/10) %>% 
-  select(-Length_mm)  
-  #filter(Age >0) no age data currently
+Age_filtered <- Age %>% 
+  filter(Year != 2019) %>% 
+  dplyr::rename(Month=month) %>% 
+  mutate(as.character(Month))
 ```
 
-summarise otolith weight data - 2024 otolith data to explore
+take a look at the data Age index data
 
 ```{r}
-Age_otwgt2019 %>% 
+Age_filtered%>% 
   dplyr::group_by(Sex,Year) %>% 
-  dplyr::summarise(mean(O,na.rm = TRUE))
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
 ```
 
-add 2019 otolith wegight data to Age index data
+add the 2019 age dataset
 
+what columns are required
+```{r}
+colnames(Age_filtered)
+colnames(Age_2019)
+```
+
+select 2019 fields
+
+```{r}
+Age_2019ed <- Age_2019 %>% 
+  select(Zone, Ground = AreaCapture, Year, Month, Age= `Age1...14`, Sex,Length_1, O= `Otolith_eight (g)`) %>% 
+   mutate(as.character(Month)) %>% 
+  mutate(length_cm = Length_1/10)
+  #filter(Age >0) no age data currently
+
+Age_2019ed %>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE), mean(Age,na.rm = TRUE))
+```
+
+bind rows to Age Index, rename Age
+
+```{r}
+Age_1 <- Age_filtered %>% 
+  bind_rows(Age_2019ed)
+  # mutate(Sex_no = Sex) %>% 
+  # mutate(Sex= as.factor(Sex)) %>% 
+  # mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
+  # mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
+```
+
+check data
+
+```{r}
+Age_1 %>% 
+  dplyr::group_by(Year,Sex,) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+```
+
+Add the 2024 data
+
+```{r}
+colnames(Age_1)
+colnames(Age_otwgt2024)
+
+```
+
+standardise new data to the Age Index
+
+add columns
+```{r}
+Age_new<- Age_otwgt2024 %>% 
+  add_column(Mark = NA, Sex_no = NA) %>% 
+  mutate(as.character(Month))
+```
+bind data
 ```{r}
 Age_2 <- Age_1 %>% 
-  bind_rows(Age_otwgt2019) %>% 
-  mutate(Sex= as.factor(Sex)) %>% 
-  mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
-  mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
-``` 
+  dplyr::bind_rows(Age_new) %>% 
+   filter(Sex=="M"|Sex=="F")
+```
 
-
-summarise to check data
+check data
 
 ```{r}
 Age_2 %>% 
-  dplyr::group_by(Ground,Sex) %>% 
-  dplyr::summarise(mean(O,na.rm = TRUE))
+  dplyr::group_by(Year,Sex,) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+ 
 ```
 
-Data wrangle the 2024 data
-```{r}
-colnames(Age_otwgt2019)
-colnames(Age_otwgt2024)
-```
-select columns 
-```{r}
-Age_otwgt2024 <- Age_otwgt2024 %>% 
-  select(Zone,)
-  
-Graphing
-```
+## Plot Age data: Age and otolith weight
 
 ```{r}
 O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
@@ -772,7 +774,7 @@ f2.7 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
   xlab("Eastern Zone Spawning Population by year for July")+
   ylab("Average otolith weight (g)")+
   scale_y_continuous(breaks = seq(.05,0.3,.05),limits = c(0,0.28))+
-  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  scale_x_continuous(limits = c(1986,2026), breaks = seq(1986,2026,4))+
   theme_bw()+
   theme(legend.position = c(.25, .05),
         legend.justification = c(1,0),
@@ -790,7 +792,7 @@ f2.8 <- ggplot(Age_Sum, aes(x = Year,y = Age, shape = Ground, colour = Sex)) +
   xlab("Eastern Zone Spawning Population by year for July")+
   ylab("Average age (years)")+
   scale_y_continuous(breaks = seq(20,70,10),limits = c(20,70))+
-  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,2))+
+  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
   theme_bw()+
   theme(legend.position = c(.25, .05),
         legend.justification = c(1,0),
@@ -800,7 +802,38 @@ f2.8 <- ggplot(Age_Sum, aes(x = Year,y = Age, shape = Ground, colour = Sex)) +
         plot.background = element_rect(linetype =  "solid") )
 
 plot(f2.7)
+ggsave("Figures/Age_owgt.emf")
+ggsave("Figures/Age_owgt.jpg")
 plot(f2.8)
-ggsave("Figures/f2.7.emf")
-ggsave("Figures/f2.7.jpg")
+ggsave("Figures/Age_years.emf")
+ggsave("Figures/Age_owgt.jpg")
+```
+### Figure 2.9 Otolith weight by year
+```{r myfig2.9}
+
+O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+
+# Otolith Weight vs time series
+f2.9 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average otolith weight (g)")+
+  scale_y_continuous(breaks = seq(.1,0.28,.02),limits = c(.1,0.28))+
+  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
+  theme_bw()+
+  theme(legend.position = c(.2, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+plot(f2.9)
+ggsave("Figures/Age_Owgt.emf")
+ggsave("Figures/Age_Owgt.jpg")
+
+
+write.csv(Age_2,"Results/Otolith_wt.csv")
 ```
