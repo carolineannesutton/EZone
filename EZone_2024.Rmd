@@ -68,11 +68,13 @@ Bio <- Bio2024_1 %>%
    select(zone, year, Area_MS, Survey, Shot, sex = Sex, stage, SLadj_cm, Otoliths, vessel = Vessel, Date= Date.x, ShotWeight_kg = Total_catch_weight_kg)
 ```
 
-append to the index data
+append 2024 data to the index data
 
 ```{r}
 Roughy <- Roughy %>% 
   bind_rows(Bio_1)
+
+write_csv(Roughy,"Results/Roughy_EZIndex_1987to2024.csv")
 ```
 
 # Table and Figures
@@ -150,7 +152,7 @@ knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of 
 ```{r}
   
 Roughyminmax <- Roughy_1 %>% 
-  dplyr::group_by(Ground,sex) %>% 
+  dplyr::group_by(year,Ground,sex) %>% 
   dplyr::summarise(round(mean(Length),digits = 2))
 
 Roughyminmax
@@ -210,6 +212,12 @@ Roughy_2_length_GroundbySex
 Roughy_2_length_Ground <- summarySE(Roughy_2, measurevar = "Length", 
                                       groupvars = c("Ground"))
 Roughy_2_length_Ground
+
+Roughy_3 <-Roughy_2 %>% 
+  filter(SLadj_cm >= 42)
+
+summarySE(Roughy_3, measurevar = "Length", 
+                                      groupvars = c("Ground","sex"))
 ```
 
 ### summaries
