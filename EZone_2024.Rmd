@@ -541,6 +541,25 @@ f2.5 <- arrangeGrob(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(5,6), heights= c
 ggsave("Figures/GonadStage.emf",f2.5) # saves the plot to file :)
 ggsave("Figures/GonadStage.jpeg",f2.5) # saves the plot to file :)
 ```
+### gonad stage summary
+```{r}
+Roughy_4 %>% 
+  filter(Ground =="St Patricks") %>% 
+  add_tally() %>% 
+  dplyr::group_by(sex,stage) %>% 
+ dplyr::summarise(prop = n()/ n[1]) 
+
+
+Roughy_4 %>% 
+  add_tally() %>% 
+  dplyr::group_by(sex,stage) %>% 
+ dplyr::summarise(n())
+  # group_by(Ground, sex) %>% 
+  # add_tally() %>% 
+  # group_by(Ground, sex, Length) %>% 
+  # dplyr::summarise(prop = n() / n[1])
+```
+
 
 ### Table: The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population.
 
@@ -651,7 +670,39 @@ f2.6<- ggplot(data = RoughyWeight,
 
 ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
+
 ```
+
+### Figure 2.7a
+Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population from 1987 to 2019 for both grounds combined, showing the predicted values (plotted black line) from Lyle (1991).
+```{r myfig2.7}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+OR_Weight_series <-Roughy_1 %>% 
+  #filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(year=as.factor(year))
+
+Lyle_com_kg <- function(x) {(0.037 * (x) ^ 2.942)/1000}
+    
+f2.7<- ggplot(data = OR_Weight_series,
+       mapping = aes(x  = Length,
+                     y = weight_kg, colour = year)) +
+  geom_point()+
+  #geom_smooth(method="glm", method.args=list(family=gaussian(link="log")),
+  #colour = "blue", linetype = 2, size = .5)+
+  ylab("weight (kg)")+
+  xlab("Standard length (cm)")+            
+  stat_function(fun = Lyle_com_kg, colour ="black")+
+  facet_wrap(~year)
+
+plot(f2.7)
+ggsave("Figures/f2.7.emf",f2.7)
+ggsave("Figures/f2.7.jpg",f2.7)# saves the plot to file :)
+plot(f2.7)
+
+```
+
 
 # Age 
 
@@ -844,4 +895,100 @@ ggsave("Figures/Age_Owgt.jpg")
 
 
 write.csv(Age_2,"Results/Otolith_wt.csv")
+```
+
+### Age regression
+
+```{r}
+AgeRegression <- summarySE(Age_2, measurevar = "Age", groupvars = c("Year","Sex", "Ground"),na.rm = TRUE) 
+
+ggplot(AgeRegression, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+#ggplot(AgeRegression, aes(x = Year,y = Age)) +
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+```
+Regression for data up to 2019 by sex and ground
+```{r}
+A_SHF <- AgeRegression %>% 
+  filter(Sex == "F") %>% 
+  filter(Ground == "St Helens")
+
+A_SHM <- AgeRegression %>% 
+  filter(Sex == "M") %>% 
+  filter(Ground == "St Helens")
+
+A_SPF <- AgeRegression %>% 
+  filter(Sex == "F") %>% 
+  filter(Ground == "St Patricks")
+
+A_SPM <- AgeRegression %>% 
+  filter(Sex == "M") %>% 
+  filter(Ground == "St Patricks")
+
+regression_shf <- lm(Age ~ Year , data = A_SHF)
+regression_shm <- lm(Age ~ Year , data = A_SHM)
+regression_spf <- lm(Age ~ Year , data = A_SPF)
+regression_spm <- lm(Age ~ Year , data = A_SPM)
+
+#Short summary of the model
+regression
+
+#Longer summary of the model
+summary(regression_shf)
+summary(regression_shm)
+summary(regression_spf)
+summary(regression_spm)
+```
+Regression for recent data 
+```{r}
+Age_recent <- AgeRegression %>% 
+  #filter(Sex == "F" & Ground == "St Helens")
+  filter(Year >= 2010)
+
+  distinct(Age_recent, Year)
+
+ggplot(Age_recent, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+
+
+
+regression_recent <- lm(Age ~ Year, data = Age_recent)
+
+
+#Longer summary of the model
+summary(regression_recent)
+```
+results
+SH F, Year          0.0040  
+SH M, Year           0.3357
+SP F, Year           0.1016 NS
+SP M, Year          0.02392 NS
+
+checking Rudy's statistics.. 
+all good :)
+```{r}
+Age_2016 <- AgeRegression %>% 
+  filter(Year <= 2016)%>% 
+  #filter(Year >= 2010) %>% 
+  filter(Sex == "F" & Ground == "St Patricks")
+
+ggplot(Age_2016, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+  
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+
+
+
+#regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
+regression_2016 <- lm(Age ~ Year, data = Age_2016)
+
+#Longer summary of the model
+summary(regression_2016)
 ```
