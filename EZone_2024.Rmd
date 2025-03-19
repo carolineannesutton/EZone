@@ -709,8 +709,7 @@ plot(f2.7)
 Read in age data
 ```{r}
 Age <- read_csv("Results/RoughyEZ_AgeIndex_1986to2019.csv")
-#Age_new <- read_csv("Data/ORAge_2019.csv")
-Age_new <- read_csv("Data/ORAge_2024_otwgt.csv")
+Age2024_Owgt <- read_csv("Data/Roughy_Age2024_owgt.csv")
 Age_2019 <- read_csv("Data/RoughyAge2019.csv")
 ```
 
@@ -766,7 +765,7 @@ Age_2019ed %>%
   dplyr::summarise(mean(O,na.rm = TRUE), mean(Age,na.rm = TRUE))
 ```
 
-bind rows to Age Index, rename Age
+bind 2019 rows to Age Index, rename Age
 
 ```{r}
 Age_1 <- Age_filtered %>% 
@@ -785,11 +784,11 @@ Age_1 %>%
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
 ```
 
-Add the 2024 data
+Add the 2024 Age data - otolith weight as proxy
 
 ```{r}
 colnames(Age_1)
-colnames(Age_otwgt2024)
+colnames(Age2024_Owgt)
 
 ```
 
@@ -797,14 +796,32 @@ standardise new data to the Age Index
 
 add columns
 ```{r}
-Age_new<- Age_otwgt2024 %>% 
-  add_column(Mark = NA, Sex_no = NA) %>% 
-  mutate(as.character(Month))
+Age2024<- Age2024_Owgt %>% 
+  select(Zone,Shot,Sex, Length_cm = Length_1, O = Oto_Wght) %>% 
+  add_column(Mark = NA, Sex_no = NA) 
+  # mutate(as.character(Month))
 ```
+
+bind to shot data to get Location!
+```{r}
+Age2024 <- Age2024 %>% 
+  left_join(Shot2024_ed, by = "Shot")
+```
+
+select matching columns
+
+```{r}
+colnames(Age_1)
+
+Age2024 <- Age2024 %>% 
+  select(Zone, Ground = Location, Year, Month, Sex, Length_cm, O, Mark, Sex_no)
+
+```
+
 bind data
 ```{r}
 Age_2 <- Age_1 %>% 
-  dplyr::bind_rows(Age_new) %>% 
+  dplyr::bind_rows(Age2024) %>% 
    filter(Sex=="M"|Sex=="F")
 ```
 
@@ -933,7 +950,7 @@ regression_spf <- lm(Age ~ Year , data = A_SPF)
 regression_spm <- lm(Age ~ Year , data = A_SPM)
 
 #Short summary of the model
-regression
+
 
 #Longer summary of the model
 summary(regression_shf)
@@ -944,7 +961,7 @@ summary(regression_spm)
 Regression for recent data 
 ```{r}
 Age_recent <- AgeRegression %>% 
-  #filter(Sex == "F" & Ground == "St Helens")
+  filter(Sex == "F" & Ground == "St Helens") %>% 
   filter(Year >= 2010)
 
   distinct(Age_recent, Year)
@@ -991,4 +1008,23 @@ regression_2016 <- lm(Age ~ Year, data = Age_2016)
 
 #Longer summary of the model
 summary(regression_2016)
+```
+
+### compare ototlith weight between 2019 and 2024
+
+```{r}
+Owgt_2024 <- Age_2 %>% 
+  filter(Year == 2019 | Year == 2024)
+  #filter(Year == 2019 | Year == 2016)
+  #filter(Year >= 2010) %>% 
+
+Owgt_2024 %>%
+  dplyr::group_by(Sex) %>%
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+
+#regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
+regression_Owgt_2024 <- lm(O ~ Year + Sex + Ground, data = Owgt_2024)
+
+#Longer summary of the model
+summary(regression_Owgt_2024)
 ```
