@@ -1019,7 +1019,11 @@ Owgt_2024 <- Age_2 %>%
   #filter(Year >= 2010) %>% 
 
 Owgt_2024 %>%
+
   dplyr::group_by(Year,Sex) %>%
+
+  dplyr::group_by(Sex) %>%
+
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
 
 #regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
@@ -1028,6 +1032,7 @@ regression_Owgt_2024 <- lm(O ~ Year + Sex + Ground, data = Owgt_2024)
 #Longer summary of the model
 summary(regression_Owgt_2024)
 ```
+
 ### compare age between 2016 and 2019
 
 ```{r}
