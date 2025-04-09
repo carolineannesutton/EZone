@@ -622,9 +622,12 @@ write.csv(t2.8,"Figures/Prop_sex_Lylewt.csv")
 
 ### roughy weight - no weight for 2024
 
+note that this graph has been corrected. The 2019 report the combined Lyle formula was incorrect. The  Lyle formula for Males (Lyle_com_Males) was used instead of the combined sex formula (Lyle_com)
+
 ```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
-Lyle_com <- function(x) {(0.037 * (x) ^ 2.942)}
+Lyle_com <- function(x) {(0.037 * (x) ^ 2.952)}
+#Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
 S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)}
 S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)}
 S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)}
@@ -648,12 +651,13 @@ f2.6<- ggplot(data = RoughyWeight,
   stat_function(fun = S2019F_fun, colour="red")+
   stat_function(fun = S2019M_fun, colour = "blue") +
   stat_function(fun = Lyle_com, colour ="black")+
+  #stat_function(fun = Lyle_com_1, colour ="pink")+
   stat_function(fun = S2019_fun, colour ="orange")+
   theme_bw()+
   
   annotate('text', x = 22, y = 3800, size =4,hjust =0,
            label = expression(paste("Weight"["Lyle sex combined"]^{}, 
-                                    " = 0037 * Length"^{2.942})))+
+                                    " = 0037 * Length"^{2.952})))+
   
   annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
            label = expression(paste("Weight"["2019 sex combined"]^{},
@@ -667,23 +671,36 @@ f2.6<- ggplot(data = RoughyWeight,
            label = expression(paste("Weight"["2019 Males"]^{},
                                     " = 0.073 * Length"^{2.794})))
 
-
-ggsave("Figures/f2.6.emf",f2.6) # saves the plot to file :)
 plot(f2.6)
+ggsave("Figures/LvsW.emf",f2.6) # saves the plot to file :)
+ggsave("Figures/LvsW.jpg",f2.6) # saves the plot to file :)
+ggsave("Figures/LvsW.tiff",f2.6) # saves the plot to file :)
+
 
 ```
 
 ### Figure 2.7a
 Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population from 1987 to 2019 for both grounds combined, showing the predicted values (plotted black line) from Lyle (1991).
+
+NOTE - this has been corrected as per the above - the correct combined Lyle formula has replaced the Lyle Male formula!!
+
 ```{r myfig2.7}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
 OR_Weight_series <-Roughy_1 %>% 
   #filter(year==2019) %>%
-    drop_na(weight_kg) %>%
-    filter(weight_kg != 0) %>% 
-    mutate(year=as.factor(year))
+   drop_na(weight_kg) %>%
+   filter(weight_kg != 0) %>% 
+   mutate(year=as.factor(year)) %>% 
+   #mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
+   mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
+                                   (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
+  #mutate(Wgt_derived_F = (0.0351 * SLadj_cm ^ 2.970)/1000) %>% 
+  #mutate(Wgt_derived_M = (0.0383 * SLadj_cm ^ 2.942)/1000) %>% 
+  mutate(ratio_derivedVSmeasured = weight_kg / Wgt_derived_MF) %>% 
+  arrange(sex)
 
-Lyle_com_kg <- function(x) {(0.037 * (x) ^ 2.942)/1000}
+
+Lyle_com_kg <- function(x) {(0.037 * (x) ^ 2.952)/1000}
     
 f2.7<- ggplot(data = OR_Weight_series,
        mapping = aes(x  = Length,
@@ -697,11 +714,53 @@ f2.7<- ggplot(data = OR_Weight_series,
   facet_wrap(~year)
 
 plot(f2.7)
-ggsave("Figures/f2.7.emf",f2.7)
-ggsave("Figures/f2.7.jpg",f2.7)# saves the plot to file :)
+ggsave("Figures/LWindex.emf",f2.7)
+ggsave("Figures/LWindex.jpg",f2.7)# saves the plot to file :)
 plot(f2.7)
 
 ```
+
+## calculate change in LW relationship
+
+```{r}
+
+  OR_Weight_series %>% 
+  group_by(year,Ground) %>% 
+  dplyr::summarise(n(),mean(ratio_derivedVSmeasured))
+
+```
+
+Plot measured vs predicted weights
+
+```{r}
+
+OR_Weight_series_sum <- summarySE(OR_Weight_series, measurevar = "ratio_derivedVSmeasured", groupvars = c("year","Ground")) 
+
+pd <- position_dodge(.2)  
+
+f_Wgt_ratio <- ggplot(OR_Weight_series_sum, aes(x=year, y = ratio_derivedVSmeasured, 
+                                                shape = Ground))+
+  geom_errorbar(aes(ymin = ratio_derivedVSmeasured - ci, ymax = ratio_derivedVSmeasured + ci),
+                width = 0.3, position = pd) +
+  geom_point(position = pd, size = 2)+
+  geom_line()+
+  ylab("Measured / Derived (Lyle 1991) Weight (kg)")+
+  xlab("Eastern Zone Spawning Population by Year for July")+
+  theme_bw()+
+   theme(legend.position = c(.95, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+ 
+
+plot(f_Wgt_ratio)
+ggsave("Figures/f_Wgt_ratio.jpg",f_Wgt_ratio)
+ggsave("Figures/f_Wgt_ratio.emf",f_Wgt_ratio)
+```
+
+
 
 
 # Age 
@@ -1019,11 +1078,11 @@ Owgt_2024 <- Age_2 %>%
   #filter(Year >= 2010) %>% 
 
 Owgt_2024 %>%
-<<<<<<< HEAD
+
   dplyr::group_by(Year,Sex) %>%
-=======
+
   dplyr::group_by(Sex) %>%
->>>>>>> be1f89a199bee097e9e3eda9d580c94e779c27fb
+
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
 
 #regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
@@ -1032,7 +1091,7 @@ regression_Owgt_2024 <- lm(O ~ Year + Sex + Ground, data = Owgt_2024)
 #Longer summary of the model
 summary(regression_Owgt_2024)
 ```
-<<<<<<< HEAD
+
 ### compare age between 2016 and 2019
 
 ```{r}
@@ -1051,5 +1110,3 @@ regression_Owgt_2024 <- lm(Age ~ Year + Sex + Ground, data = Owgt_2024)
 #Longer summary of the model
 summary(regression_Owgt_2024)
 ```
-=======
->>>>>>> be1f89a199bee097e9e3eda9d580c94e779c27fb
