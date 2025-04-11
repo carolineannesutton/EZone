@@ -606,7 +606,7 @@ Roughy_4 %>%
 # bind all the tables together, create and rename some coloumns, round off new columns
 t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
   mutate("Estimated weight (kg) based on Lyle et al (1991)" 
-         = (0.037*(mean)^2.942)/1000) %>% 
+         = (0.037*(mean)^2.952)/1000) %>% 
   dplyr::rename("No of fish" = n, "Avg length (cm)" 
                 = mean, "Spawning Ground"= Ground, "Prop"=Proportion) %>% 
   dplyr::mutate_at(4:6, funs(round(.,2)))  
@@ -691,12 +691,12 @@ OR_Weight_series <-Roughy_1 %>%
    drop_na(weight_kg) %>%
    filter(weight_kg != 0) %>% 
    mutate(year=as.factor(year)) %>% 
-   #mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
+   mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
    mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
                                    (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
   #mutate(Wgt_derived_F = (0.0351 * SLadj_cm ^ 2.970)/1000) %>% 
   #mutate(Wgt_derived_M = (0.0383 * SLadj_cm ^ 2.942)/1000) %>% 
-  mutate(ratio_derivedVSmeasured = weight_kg / Wgt_derived_MF) %>% 
+  mutate(ratio_derivedVSmeasured = weight_kg / Wgt_derived_MF) %>%      mutate(change_wgt = ((Wgt_derived_MF/weight_kg)*100)) %>% 
   arrange(sex)
 
 
@@ -725,8 +725,8 @@ plot(f2.7)
 ```{r}
 
   OR_Weight_series %>% 
-  group_by(year,Ground) %>% 
-  dplyr::summarise(n(),mean(ratio_derivedVSmeasured))
+  group_by(Ground,year) %>% 
+  dplyr::summarise(n(),mean(ratio_derivedVSmeasured),mean(change_wgt))
 
 ```
 
@@ -736,6 +736,16 @@ Plot measured vs predicted weights
 
 OR_Weight_series_sum <- summarySE(OR_Weight_series, measurevar = "ratio_derivedVSmeasured", groupvars = c("year","Ground")) 
 
+knitr::kable(tail(OR_Weight_series_sum, n = 9), format = "html", caption = "Table 2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+
+  kableExtra::kable_styling("striped") %>%
+
+  kableExtra::scroll_box(width = "100%")
+```
+
+
+Plot the weight data series
+```{r}
 pd <- position_dodge(.2)  
 
 f_Wgt_ratio <- ggplot(OR_Weight_series_sum, aes(x=year, y = ratio_derivedVSmeasured, 
@@ -760,7 +770,34 @@ ggsave("Figures/f_Wgt_ratio.jpg",f_Wgt_ratio)
 ggsave("Figures/f_Wgt_ratio.emf",f_Wgt_ratio)
 ```
 
+weight data for 2019
 
+```{r}
+Wgt_2019_GroundFM <- OR_Weight_series %>% 
+  filter(year == 2019) %>% 
+  dplyr::group_by(Ground,sex) %>% 
+  dplyr::summarise(n= n(), measured = mean(weight_kg), derived = mean(Wgt_derived_MF), mean(ratio_derivedVSmeasured)) %>% 
+  mutate(Proportion = n / sum(n)) 
+
+Wgt_ground <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF), mean(Wgt_derived))
+
+Wgt_sex <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF))
+
+Wgt_sex <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF))
+
+wgt_survey <- OR_Weight_series %>% 
+  filter(year == 2019) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived))
+```
 
 
 # Age 
