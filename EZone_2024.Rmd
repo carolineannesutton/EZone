@@ -203,6 +203,7 @@ filter(year == 2024)
 ```
 
 ### length data table
+exploring the length data
 ```{r}
 
 Roughy_2_length_GroundbySex <- summarySE(Roughy_2, measurevar = "Length", 
@@ -542,6 +543,7 @@ ggsave("Figures/GonadStage.emf",f2.5) # saves the plot to file :)
 ggsave("Figures/GonadStage.jpeg",f2.5) # saves the plot to file :)
 ```
 ### gonad stage summary
+exploring gonad data
 ```{r}
 Roughy_4 %>% 
   filter(Ground =="St Patricks") %>% 
@@ -572,6 +574,7 @@ Roughy_4 %>%
     dplyr::summarise(n = n(), mean = mean(Length)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = c("F","M"))
+   
 
 #table for SP proportion by sex
   OR_sPg <- Roughy_2 %>%                                        
@@ -605,11 +608,15 @@ Roughy_4 %>%
  
 # bind all the tables together, create and rename some coloumns, round off new columns
 t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
-  mutate("Estimated weight (kg) based on Lyle et al (1991)" 
+  mutate("Estimated weight (kg) based on combined Lyle et al (1991)"
          = (0.037*(mean)^2.952)/1000) %>% 
+  mutate("Estimated weight (kg) based on sex specific Lyle et al (1991)" =
+           if_else(sex == "F",(0.0351 *(mean) ^ 2.970)/1000,
+          if_else(sex == "M",(0.0383 * (mean) ^ 2.942)/1000,
+                   (0.037*(mean)^2.952)/1000))) %>%
   dplyr::rename("No of fish" = n, "Avg length (cm)" 
                 = mean, "Spawning Ground"= Ground, "Prop"=Proportion) %>% 
-  dplyr::mutate_at(4:6, funs(round(.,2)))  
+  dplyr::mutate_at(4:7, funs(round(.,3)))
 
 knitr::kable(tail(t2.8, n = 9), format = "html", caption = "Table 2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
 
