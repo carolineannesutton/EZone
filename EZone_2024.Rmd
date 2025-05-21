@@ -196,7 +196,18 @@ ggsave("Figures/LF_index.jpg")
 ```
 ## Roughy series - adding weigth estimates to the data
 
-OR_Weight_series_allyears <-Roughy_1 %>% 
+* Lyle et al. 1991 Pg 63. 
+
+Combined length – weight regression. W = 0.037 * SL ^ 2.952.
+
+Female length – weight regression. W = 0.0351 * SL ^ 2.970
+
+Male length – weight regression. W = 0.0383 * SL ^ 2.942  
+
+
+```{r}
+
+Roughy_1 <-Roughy_1 %>% 
   #filter(year==2019) %>%
    #drop_na(weight_kg) %>%
    #filter(weight_kg != 0) %>% 
@@ -204,13 +215,11 @@ OR_Weight_series_allyears <-Roughy_1 %>%
    mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
    mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
                                    (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
-  #mutate(Wgt_derived_F = (0.0351 * SLadj_cm ^ 2.970)/1000) %>% 
-  #mutate(Wgt_derived_M = (0.0383 * SLadj_cm ^ 2.942)/1000) %>% 
   mutate(MvsD = weight_kg / Wgt_derived_MF) %>%      
   mutate(percentchange = ((weight_kg - Wgt_derived_MF)/ weight_kg)) %>% 
   mutate(wgt_diff = Wgt_derived_MF - weight_kg) %>% 
   arrange(sex)
-
+```
 
 ## DATA for 2024
 ```{r}
@@ -249,7 +258,8 @@ Roughy_2_sum <- Roughy_2 %>%
   dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
   dplyr::summarise(num_rows = n()) %>% 
   spread(sex,num_rows) %>% 
-  mutate(`Total` = F + M) 
+  mutate(`Total` = F + M) %>% 
+  mutate(Ratio_F = F/`Total`) 
 
 # creating ground/ and survey totals for:
 
@@ -282,6 +292,43 @@ write.csv(t2.4,"Figures/t2.4.csv")
 knitr::kable(head(t2.4, n=20), format = "html", caption = "Table 2.4 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
   kableExtra::kable_styling("striped") %>%
   kableExtra::scroll_box(width  = "100%")
+```
+
+## Data by shot: Length and derived
+
+```{r}
+Roughy_2_sum_L <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgL = mean(Length)) %>% 
+  spread(sex,avgL) %>% 
+  mutate(F_Lgt =round(F,2), M_Lgt =round(M,2)) %>% 
+  select(-F,-M)
+  
+                     
+Roughy_2_sum_W <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgW = mean(Wgt_derived)) %>%
+  spread(sex,avgW) %>% 
+  mutate(F_Dw =round(F,2), M_DW =round(M,2)) %>% 
+  ungroup() %>% 
+  select(-F,-M,-Ground,-Shot)
+                  
+Roughy_2_sum_WFM <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgWFM = mean(Wgt_derived_MF)) %>%
+  spread(sex,avgWFM) %>% 
+  mutate(F_wFM =round(F,2), M_wFM =round(M,2)) %>% 
+  ungroup() %>% 
+  select(-F,-M,-Ground,-Shot)
+                   
+                   #avgwgt = mean(Wgt_derived),avgwgtMF = mean(Wgt_derived_MF)) 
+shotdata_LWW <- bind_cols(Roughy_2_sum_L,Roughy_2_sum_W,Roughy_2_sum_WFM)
+  
+  # t2.4 <- bind_rows(Roughy_2_sum, TSH, TSP,TSHSP) %>%   # put all together for totals
+  # dplyr::rename("Shot Weight (kg)" = ShotWeight_kg, "Total Nos Fish" = Total)
+
+
+
 ```
 
 ### Standard Length by sex and ground
@@ -587,7 +634,7 @@ Roughy_4 %>%
   OR_sHg <- Roughy_2 %>%   
     filter(Ground == "St Helens") %>%
     dplyr::group_by(Ground, sex) %>%
-    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    dplyr::summarise(n = n(), mean = mean(Length), estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = c("F","M"))
    
@@ -596,33 +643,33 @@ Roughy_4 %>%
   OR_sPg <- Roughy_2 %>%                                        
     filter(Ground == "St Patricks") %>%
     dplyr::group_by(Ground, sex) %>%
-    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = c("F","M"))
   
 # table for Grounds combined sexes  
  OR_SHSPbg <- Roughy_2 %>%                                      
     dplyr::group_by(Ground) %>%
-    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex = "M & F")
 
 # table for sex combined grounds 
  OR_sex <- Roughy_2 %>%                                      
     dplyr::group_by(sex) %>%
-    dplyr::summarise(n = n(), mean = mean(Length)) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(Ground = "SH and SP")
  
 # table for survey
  OR_survey <- Roughy_2 %>% 
     #ungroup(sex) %>% 
-    dplyr::summarise(n = n(), mean = mean(round(Length))) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
     mutate(Proportion = n / sum(n)) %>% 
     mutate(sex ="all fish",
            Ground = "Survey total")
  
-# bind all the tables together, create and rename some coloumns, round off new columns
+v# bind all the tables together, create and rename some coloumns, round off new columns
 t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
   mutate("Estimated weight (kg) based on combined Lyle et al (1991)"
          = (0.037*(mean)^2.952)/1000) %>% 
