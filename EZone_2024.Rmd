@@ -118,7 +118,14 @@ Write data
 #write.csv(BioSummary24,"C:/Users/sut109/OneDrive - CSIRO/roughy - working/Figures/t2.4_sumshot_24.csv")
 ```
 
+```{r}
+BioSummary24_ground <- BioSummary24 %>% 
+  select(Ground,Shot,retained,discarded) %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(sum(retained),sum(discarded)) 
 
+
+```
 
 
 ---
