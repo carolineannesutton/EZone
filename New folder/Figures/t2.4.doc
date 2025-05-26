@@ -1,0 +1,212 @@
+<table style="border-collapse:collapse; border:none;">
+<tr>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; text-align:left; ">year</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; ">St Helens_F</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; ">St Helens_F1</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; ">St Helens_M</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; ">St Helens_M1</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; ">St Patricks_F</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; col7">St Patricks_F1</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; col8">St Patricks_M</th>
+<th style="border-top: double; text-align:center; font-style:italic; font-weight:normal; padding:0.2cm; border-bottom:1px solid black; col9">St Patricks_M1</th>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">1987</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">37</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">146</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">181</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">1990</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">800</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">459</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">NA</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">1992</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">248</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">92</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">NA</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">NA</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">1996</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">37</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">128</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">49</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">37</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">17</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">30</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">3</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">1999</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">38</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">840</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">506</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">199</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">550</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2001</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">37</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">971</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">478</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">691</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">32</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">1352</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2002</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">38</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">59</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">77</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">332</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">612</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2004</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">1295</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">32</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">368</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">886</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">470</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2005</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">702</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">488</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">608</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">1193</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2006</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">1520</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">32</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">740</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">1394</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">1752</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2007</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">1064</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">32</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">672</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">362</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">690</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2008</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">1402</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">735</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">639</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">889</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2009</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">425</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">670</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">334</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">220</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2010</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">704</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">355</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">304</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">179</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2012</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">211</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">358</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">279</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">323</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2013</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">548</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">284</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">107</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">103</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">2016</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">35</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">902</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">791</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col7">287</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; col8">33</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  col9">126</td>
+</tr>
+<tr>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; border-bottom: double; ">2019</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double; ">36</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double;  ">856</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double; ">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double;  ">438</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double; ">37</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double;  col7">526</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double; col8">34</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center; border-bottom: double;  col9">689</td>
+</tr>
+</table>
+
