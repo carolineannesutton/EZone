@@ -143,16 +143,572 @@ Detailed discard catch complication
 ```{r}
 
 
-Discard_details <-cc %>% 
+Discard_cc <-cc %>% 
   filter(Fate == "D") %>% 
   dplyr::group_by(Species,Shot) %>% 
   dplyr::summarise(TW =sum(`Total Weight (kg)`))
 
+Discard_cc_1 <- Discard_cc %>% 
+  left_join(Shot2024, by = "Shot") %>% 
+  select(Species,Shot, Ground = Location, TW) %>% 
+  drop_na(Ground)
 
- Discard_details <- spread(Discard_details,key = Shot, value = TW)
+
+     
+
+```
+
+```{r}
 
 
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = Shot))+
+  geom_bar(stat = "identity")+
+  facet_wrap(~Ground)
 
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = Shot))+
+  geom_bar(stat = "identity")
+
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = as.factor(Shot))) +
+  geom_bar(stat = "identity", color = "black", position = "stack") +
+  labs(fill = "Shot Number")  # Customize legend title
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = as.factor(Shot))) +
+  geom_bar(stat = "identity", color = "black", position = "stack") +
+  labs(fill = "Shot Number", x = "Tow (TW)", y = "Species Value") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = factor(Shot))) +
+  geom_bar(stat = "identity", color = "black", position = "stack") +
+  labs(fill = "Shot Number")
+
+
+# Generate a gradient palette (e.g., shades of blue) with N levels
+n_shots <- length(unique(Discard_cc_1$Shot))
+shot_levels <- sort(unique(Discard_cc_1$Shot))
+shot_colors <- seq_gradient_pal("lightblue", "darkblue", "Lab")(seq(0, 1, length.out = n_shots))
+names(shot_colors) <- as.character(shot_levels)
+
+# Plot
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = factor(Shot))) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = shot_colors) +
+  labs(fill = "Shot Number")
+
+#######################################
+
+# Example: ensure Shot and Ground are factors
+# Make sure Shot and Ground are factors
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+# Get levels
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+# Create color gradients for each ground
+color_vector <- c()
+
+for (g in ground_levels) {
+  n_shots <- length(shot_levels)
+  
+  # Assign blue gradient for St Helens, green for St Patricks
+  if (g == "St Helens") {
+    gradient_colors <- seq_gradient_pal("lightblue", "darkblue", "Lab")(seq(0, 1, length.out = n_shots))
+  } else if (g == "St Patricks") {
+    gradient_colors <- seq_gradient_pal("lightgreen", "darkgreen", "Lab")(seq(0, 1, length.out = n_shots))
+  } else {
+    # Default gray if other grounds exist
+    gradient_colors <- seq_gradient_pal("grey90", "grey30", "Lab")(seq(0, 1, length.out = n_shots))
+  }
+  
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  names(gradient_colors) <- combined_levels
+  color_vector <- c(color_vector, gradient_colors)
+}
+
+# Reorder color_vector to match factor levels
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+# Plot
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Total Weight (TW)", y = "Species / Taxa Group") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+
+###############################################
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+color_vector <- c()
+
+for (g in ground_levels) {
+  n_shots <- length(shot_levels)
+  
+  if (g == "St Helens") {
+    # Stronger blue gradient: from very light cyan to deep navy blue
+    gradient_colors <- seq_gradient_pal("#E0FFFF", "#000080", "Lab")(seq(0, 1, length.out = n_shots))
+  } else if (g == "St Patricks") {
+    # Stronger green gradient: from pale green to deep forest green
+    gradient_colors <- seq_gradient_pal("#CCFFCC", "#004d00", "Lab")(seq(0, 1, length.out = n_shots))
+  } else {
+    gradient_colors <- seq_gradient_pal("grey90", "grey30", "Lab")(seq(0, 1, length.out = n_shots))
+  }
+  
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  names(gradient_colors) <- combined_levels
+  color_vector <- c(color_vector, gradient_colors)
+}
+
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+##################################################
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+# Function to generate clearly spaced colors by manual interpolation
+generate_contrast_colors <- function(start_color, end_color, n) {
+  # Generate colors evenly spaced in LAB color space for better perceptual difference
+  colors <- grDevices::colorRampPalette(c(start_color, end_color))(n)
+  return(colors)
+}
+
+color_vector <- c()
+
+for (g in ground_levels) {
+  n_shots <- length(shot_levels)
+  
+  if (g == "St Helens") {
+    # Strong distinct blues - bright cyan to dark royal blue with bigger perceptual jumps
+    gradient_colors <- generate_contrast_colors("#00FFFF", "#00008B", n_shots)
+  } else if (g == "St Patricks") {
+    # Strong distinct greens - bright lime to dark green
+    gradient_colors <- generate_contrast_colors("#32CD32", "#004400", n_shots)
+  } else {
+    # Neutral grays
+    gradient_colors <- generate_contrast_colors("#CCCCCC", "#333333", n_shots)
+  }
+  
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  names(gradient_colors) <- combined_levels
+  color_vector <- c(color_vector, gradient_colors)
+}
+
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+#######################################################
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+# Function to generate colors with bigger perceptual jumps by limiting number of shades and picking evenly spaced ones
+generate_stepped_colors <- function(start_color, end_color, n_steps, n_needed) {
+  # Generate a big palette first (n_steps), then pick n_needed colors evenly spaced out
+  big_palette <- grDevices::colorRampPalette(c(start_color, end_color))(n_steps)
+  # Pick evenly spaced colors from big palette
+  indices <- round(seq(1, n_steps, length.out = n_needed))
+  stepped_colors <- big_palette[indices]
+  return(stepped_colors)
+}
+
+color_vector <- c()
+
+for (g in ground_levels) {
+  n_shots <- length(shot_levels)
+  
+  if (g == "St Helens") {
+    # Generate a palette with bigger jumps (e.g. 7 steps, pick 5 for 5 shots)
+    gradient_colors <- generate_stepped_colors("#00BFFF", "#00008B", n_steps = 7, n_needed = n_shots)
+  } else if (g == "St Patricks") {
+    gradient_colors <- generate_stepped_colors("#7CFC00", "#004400", n_steps = 7, n_needed = n_shots)
+  } else {
+    gradient_colors <- generate_stepped_colors("#CCCCCC", "#333333", n_steps = 7, n_needed = n_shots)
+  }
+  
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  names(gradient_colors) <- combined_levels
+  color_vector <- c(color_vector, gradient_colors)
+}
+
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+
+##############################
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+# Manually define very distinct blue shades for St Helens
+st_helens_colors <- c(
+  "#003f5c", # very dark blue
+  "#2f4b7c",
+  "#665191",
+  "#a05195",
+  "#d45087",
+  "#f95d6a",
+  "#ff7c43"
+)
+
+# Manually define very distinct green shades for St Patricks
+st_patricks_colors <- c(
+  "#004d00", # very dark green
+  "#237a23",
+  "#47a347",
+  "#6fc46f",
+  "#98d398",
+  "#c0e4c0",
+  "#e6f1e6"
+)
+
+# Adjust length to number of shots
+st_helens_colors <- st_helens_colors[seq_len(length(shot_levels))]
+st_patricks_colors <- st_patricks_colors[seq_len(length(shot_levels))]
+
+color_vector <- c()
+
+for (g in ground_levels) {
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  
+  if (g == "St Helens") {
+    names(st_helens_colors) <- combined_levels
+    color_vector <- c(color_vector, st_helens_colors)
+  } else if (g == "St Patricks") {
+    names(st_patricks_colors) <- combined_levels
+    color_vector <- c(color_vector, st_patricks_colors)
+  } else {
+    # fallback gray scale
+    fallback_colors <- grDevices::colorRampPalette(c("grey90", "grey30"))(length(shot_levels))
+    names(fallback_colors) <- combined_levels
+    color_vector <- c(color_vector, fallback_colors)
+  }
+}
+
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+###########
+
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+shot_levels <- levels(Discard_cc_1$Shot)
+ground_levels <- levels(Discard_cc_1$Ground)
+
+stopifnot(all(ground_levels %in% c("St Helens", "St Patricks")))
+
+# Manually define strong distinct colors for St Helens (blue hues)
+st_helens_colors <- c(
+  "#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43"
+)[seq_along(shot_levels)]
+
+# Manually define strong distinct colors for St Patricks (green hues)
+st_patricks_colors <- c(
+  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0", "#e6f1e6"
+)[seq_along(shot_levels)]
+
+color_vector <- c()
+
+for (g in ground_levels) {
+  combined_levels <- paste(g, shot_levels, sep = "_")
+  if (g == "St Helens") {
+    names(st_helens_colors) <- combined_levels
+    color_vector <- c(color_vector, st_helens_colors)
+  } else if (g == "St Patricks") {
+    names(st_patricks_colors) <- combined_levels
+    color_vector <- c(color_vector, st_patricks_colors)
+  }
+}
+
+# Reorder colors to match ShotGround factor levels exactly
+color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
+
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+###########################
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    Shot = factor(Shot),
+    Ground = factor(Ground),
+    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
+  )
+
+# Get levels of ShotGround (all combinations in your data)
+all_levels <- levels(Discard_cc_1$ShotGround)
+
+# Extract unique Grounds and Shots from those levels
+# (splitting by underscore to get Ground and Shot parts)
+library(stringr)
+ground_shot_df <- data.frame(
+  ShotGround = all_levels,
+  Ground = str_extract(all_levels, "^[^_]+"),
+  Shot = str_extract(all_levels, "(?<=_).*")
+)
+
+# Define strong distinct blue colors for St Helens
+st_helens_colors <- c(
+  "darkblue","#003f5c", "#2f4b7c", "lightblue","#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43","orange","yellow","beige"
+)
+
+# Define strong distinct green colors for St Patricks
+st_patricks_colors <- c(
+  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0", "#e6f1e6", "white"
+)
+
+# Get unique Shots (to know how many colors needed)
+unique_shots <- unique(ground_shot_df$Shot)
+
+# Assign colors per Ground and Shot
+color_list <- sapply(all_levels, function(level) {
+  parts <- strsplit(level, "_")[[1]]
+  ground <- parts[1]
+  shot <- parts[2]
+  shot_index <- which(unique_shots == shot)
+  
+  if (ground == "St Helens") {
+    # Use color based on shot index; recycle if shots > color length
+    st_helens_colors[(shot_index - 1) %% length(st_helens_colors) + 1]
+  } else if (ground == "St Patricks") {
+    st_patricks_colors[(shot_index - 1) %% length(st_patricks_colors) + 1]
+  } else {
+    "#999999"  # fallback grey for unexpected Grounds
+  }
+})
+
+names(color_list) <- all_levels
+
+# Plot with manual fill scale
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_list, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+
+###############################
+
+# Assuming Discard_cc_1 has columns: TW, Species, Shot, Ground
+
+Discard_cc_1 <- Discard_cc_1 %>%
+  mutate(
+    ShotGround_char = paste(Ground, Shot_num, sep = "_")
+  )
+
+# Create ordered levels
+levels_ordered <- Discard_cc_1 %>%
+  distinct(Ground, Shot_num) %>%
+  arrange(Ground, Shot_num) %>%
+  mutate(ShotGround = paste(Ground, Shot_num, sep = "_")) %>%
+  pull(ShotGround) %>%
+  unique()
+
+# Convert ShotGround_char to factor with ordered levels
+Discard_cc_1$ShotGround <- factor(Discard_cc_1$ShotGround_char, levels = levels_ordered)
+
+# 4. Define manual colors (make sure length matches number of Shots)
+st_helens_colors <- c(
+  "darkblue", "#003f5c", "#2f4b7c", "lightblue", "#665191", "#a05195",
+  "#d45087", "#f95d6a", "#ff7c43", "orange", "yellow", "beige"
+)
+
+st_patricks_colors <- c(
+  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0",
+  "#e6f1e6", "white"
+)
+
+num_shots <- length(levels(Discard_cc_1$Shot))
+st_helens_colors <- st_helens_colors[1:num_shots]
+st_patricks_colors <- st_patricks_colors[1:num_shots]
+
+# 5. Assign colors to each ShotGround level
+all_levels <- levels(Discard_cc_1$ShotGround)
+
+color_vector <- sapply(all_levels, function(level) {
+  parts <- strsplit(level, "_")[[1]]
+  ground <- parts[1]
+  shot_num <- as.numeric(parts[2])
+  shot_index <- which(levels(Discard_cc_1$Shot) == as.character(shot_num))
+  
+  if (ground == "St Helens") {
+    st_helens_colors[shot_index]
+  } else if (ground == "St Patricks") {
+    st_patricks_colors[shot_index]
+  } else {
+    "#999999" # fallback grey for unexpected Grounds
+  }
+})
+
+names(color_vector) <- all_levels
+
+# 6. Plot
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
+  labs(x = "Tow (TW)", y = "Species Value") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right")
+
+################
+# Your original data: Discard_cc_1
+
+# Step 1: Get unique ShotGround levels and order them as you want
+levels_ordered <- sort(unique(Discard_cc_1$ShotGround))
+
+# Step 2: Split levels by ground
+st_helens_shots <- levels_ordered[grepl("St Helens", levels_ordered)]
+st_patricks_shots <- levels_ordered[grepl("St Patricks", levels_ordered)]
+
+# Step 3: Your defined colors (make sure lengths match counts exactly)
+# st_helens_colors <- c(
+#   "darkblue", "#003f5c", "#2f4b7c", "lightblue", "#665191", 
+#   "#a05195", "#d45087", "#f95d6a", "#ff7c43", "orange", "yellow", "beige"
+# )
+
+st_helens_colors <- c(
+  "#800000",  # Maroon
+  "#B22000",  # Firebrick
+  "#FF0000",  # Red
+    "pink",
+  "#FF4500",  # OrangeRed
+  "#FF6347",  # Tomato
+  "#FF7F50",  # Coral
+
+  "#FFA500",  # Orange
+  "yellow",
+  "#FFD700",  # Gold
+  "beige",
+  "white"
+)
+
+# st_patricks_colors <- c(
+#   "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", 
+#   "#c0e4c0", "#e6f1e6", "white"
+# )
+
+st_patricks_colors <- c(
+  "#001f3f",  # Navy
+  "#003f5c",  # Dark Blue
+  "#2f4b7c",  # Indigo Blue
+  "#3f6caa",  # Medium Blue
+  "#4682B4",  # Steel Blue
+  "#5dade2",  # Sky Blue
+  "#87cefa",  # Light Sky Blue
+  "#d0e7f9"   # Very Light Blue
+)
+
+# Step 4: Create named vector of colors matching factor levels
+colors_named <- c(
+  setNames(st_helens_colors, st_helens_shots),
+  setNames(st_patricks_colors, st_patricks_shots)
+)
+
+# Step 5: Set ShotGround factor levels in your data to ensure order
+Discard_cc_1$ShotGround <- factor(Discard_cc_1$ShotGround, levels = levels_ordered)
+
+# Step 6: Plot
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
+  geom_bar(stat = "identity", color = "black") +
+  scale_fill_manual(values = colors_named) +
+  theme_minimal() +
+  labs(fill = "Shot and Ground") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+unique_shotground_values <- unique(Discard_cc_1$ShotGround_char)
+print("Unique ShotGround values in data:")
+print(unique_shotground_values)
+
+print("Levels ordered:")
+print(levels_ordered)
+
+# Which ShotGround values are NOT in levels_ordered?
+mismatched_levels <- setdiff(unique_shotground_values, levels_ordered)
+print("Values in ShotGround NOT in levels_ordered:")
+print(mismatched_levels)
+
+# Which levels_ordered are NOT in ShotGround?
+missing_in_data <- setdiff(levels_ordered, unique_shotground_values)
+print("Levels in levels_ordered NOT in ShotGround:")
+print(missing_in_data)
 ```
 
 ---
