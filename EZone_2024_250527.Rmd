@@ -1,0 +1,1307 @@
+---
+title: 'Orange Roughy Eastern Zone: Biological Summary from the Acoustic Survey 2024'
+author: "sutton"
+date: "2025-01-28"
+output: html_document
+---
+
+# Set up
+
+libraries required
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(ggpubr)
+library(Rmisc)
+library(dplyr)
+library(devEMF)
+library(tidyr)
+library(kableExtra)
+library(knitr)
+library(cowplot)
+library(gridExtra)
+library(lubridate)
+```
+
+load data
+```{r}
+# Biological Index
+Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
+
+Age2019 <- read_csv("Data/RoughyAge2019.csv")
+         
+# 2024 data
+Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
+Shot2024 <- read_csv("Data/RoughyShot_EZ_2024.csv")
+discard2024 <- read_csv("Data/Roughy2024_discards.csv")
+cc <- read_csv("Data/Roughy2024_catchcomp.csv")
+```
+
+
+manipulate 2024 data
+
+```{r}
+Shot2024_ed <- Shot2024 %>% 
+  select(Shot,Location,Day, Month, Year, Date,Lengths,Otoliths,Total_catch_weight_kg)
+
+Bio2024_1 <- Bio2024 %>% 
+  left_join(Shot2024_ed, by = "Shot") 
+```
+
+## Index data - add new data
+
+explore fields
+```{r}
+colnames(Roughy)
+colnames(Bio2024_1)
+```
+add relevant columns
+
+```{r}
+
+Bio <- Bio2024_1 %>%
+  mutate(zone = "Eastern", year = 2024, Area_MS = Location, Survey = Voyage, stage = Gonad_Stage,
+         SLadj_cm = Length_cm)
+
+ Bio_1 <- Bio %>% 
+   select(zone, year, Area_MS, Survey, Shot, sex = Sex, stage, SLadj_cm, Otoliths, vessel = Vessel, Date= Date.x, ShotWeight_kg = Total_catch_weight_kg)
+```
+
+append 2024 data to the index data
+
+```{r}
+Roughy <- Roughy %>% 
+  bind_rows(Bio_1)
+
+write_csv(Roughy,"Results/Roughy_EZIndex_1987to2024.csv")
+```
+
+explore data
+
+```{r}
+Roughy %>% 
+  filter(year==2024) %>% 
+  #group_by(sex) %>% 
+  distinct(stage,sex)
+```
+
+# Table and Figures
+
+## Summarise bio data 2024
+
+```{r}
+BioSummary24 <- Bio2024_1 %>% 
+  dplyr::group_by(Shot,Sex) %>% 
+  dplyr::summarise(n= n())
+
+BioSummary24 <- spread(BioSummary24, key = Sex,value = n)
+```
+
+
+add other required fields
+
+```{r}
+BioSummary24 <- BioSummary24 %>% 
+  left_join(Shot2024_ed, by= "Shot") %>% 
+  select(Ground = Location, Shot, Date, Total_catch_weight_kg, F, M, Total_Fish_Measured = Lengths, Otoliths_taken = Otoliths)
+```
+
+add discards
+
+select relevant fields
+```{r}
+discard2024 <- discard2024 %>% 
+  select(Shot,retained,discarded)
+```
+ 
+ join to summary
+ 
+```{r}
+BioSummary24 <- BioSummary24 %>% 
+  left_join(discard2024, by = "Shot")
+```
+
+Write data
+```{r}
+#write.csv(BioSummary24,"C:/Users/sut109/OneDrive - CSIRO/roughy - working/Figures/t2.4_sumshot_24.csv")
+```
+
+```{r}
+BioSummary24_ground <- BioSummary24 %>% 
+  select(Ground,Shot,retained,discarded) %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(sum(retained),sum(discarded)) 
+
+
+```
+
+
+Detailed discard catch complication
+
+```{r}
+
+
+Discard_details <-cc %>% 
+  filter(Fate == "D") %>% 
+  dplyr::group_by(Species,Shot) %>% 
+  dplyr::summarise(TW =sum(`Total Weight (kg)`))
+
+
+ Discard_details <- spread(Discard_details,key = Shot, value = TW)
+
+
+
+```
+
+---
+### summary table with additional 2024 data
+
+```{r mytable, out.width='100%', echo = T}
+
+
+#remame and select columns
+Roughy_1 <- Roughy %>% 
+  mutate(Length =round(SLadj_cm)) %>% #round values for length in cm 2019 was to nearest mm
+  mutate(Ground = Area_MS) %>% 
+  drop_na(Ground) %>% 
+  #drop_na(Length) %>% 
+  drop_na(sex) %>% 
+  select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths)
+
+
+Roughy_DataSummary <- Roughy_1 %>% 
+  dplyr::group_by(year, Ground,sex) %>% 
+  dplyr::summarise(n= n())
+
+Roughy_DataSummary <- spread(Roughy_DataSummary, key = year,value = n)
+
+
+knitr::kable(tail(Roughy_DataSummary, n = 5),caption = "Summary data: Number of Fish measured for orange roughy eastern zone spawning surveys by, year, Area, sex") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width = "100%")
+```
+
+```{r}
+  
+Roughyminmax <- Roughy_1 %>% 
+  dplyr::group_by(year,Ground,sex) %>% 
+  dplyr::summarise(round(mean(Length),digits = 2))
+
+Roughyminmax
+```
+
+### Length - index
+Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2024. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
+```{r myfig2.1}
+#average SL by Area and sex
+
+library(Rmisc)
+library(ggplot2)
+
+roughy_sum <- summarySE(Roughy_1, measurevar = "Length", groupvars = c("year","Ground","sex")) 
+
+
+  
+pd <- position_dodge(0.6) # move position horizontally b/c of overlap
+
+f2.1 <- ggplot(roughy_sum, aes(x = year,y = Length, shape = Ground, colour = sex)) +
+  geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average Standard Length (cm)")+
+  scale_y_continuous(breaks = seq(27,38,1),limits = c(27,38))+
+  scale_x_continuous(limits = c(1986,2026), breaks = seq(1986,2026,4))+
+  theme_bw()+
+  theme(legend.position = c(.95, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+         plot.background = element_rect(linetype =  "solid") )
+
+  
+plot(f2.1)
+ggsave("Figures/LF_index.emf")
+ggsave("Figures/LF_index.jpg")
+```
+## Roughy series - adding weigth estimates to the data
+
+* Lyle et al. 1991 Pg 63. 
+
+Combined length – weight regression. W = 0.037 * SL ^ 2.952.
+
+Female length – weight regression. W = 0.0351 * SL ^ 2.970
+
+Male length – weight regression. W = 0.0383 * SL ^ 2.942  
+
+
+```{r}
+
+Roughy_1 <-Roughy_1 %>% 
+  #filter(year==2019) %>%
+   #drop_na(weight_kg) %>%
+   #filter(weight_kg != 0) %>% 
+   mutate(year=as.factor(year)) %>% 
+   mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
+   mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
+                                   (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
+  mutate(MvsD = weight_kg / Wgt_derived_MF) %>%      
+  mutate(percentchange = ((weight_kg - Wgt_derived_MF)/ weight_kg)) %>% 
+  mutate(wgt_diff = Wgt_derived_MF - weight_kg) %>% 
+  arrange(sex)
+```
+
+## DATA for 2024
+```{r}
+Roughy_2 <- Roughy_1 %>% 
+filter(year == 2024)
+```
+
+### length data table
+exploring the length data
+```{r}
+
+Roughy_2_length_GroundbySex <- summarySE(Roughy_2, measurevar = "Length", 
+                                      groupvars = c("Ground","sex"))
+Roughy_2_length_GroundbySex
+
+Roughy_2_length_Ground <- summarySE(Roughy_2, measurevar = "Length", 
+                                      groupvars = c("Ground"))
+Roughy_2_length_Ground
+
+Roughy_3 <-Roughy_2 %>% 
+  filter(SLadj_cm >= 42)
+
+summarySE(Roughy_3, measurevar = "Length", 
+                                      groupvars = c("Ground","sex"))
+```
+
+### summaries
+
+#### Table 2.4 (needs updating for future surveys to include shot without measures in "OR.R")
+```{r table 2.4, echo=FALSE}
+#need to update code to include shot weights for shots where fish were not measured **
+# fitler data for 2019
+
+
+Roughy_2_sum <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,Date,ShotWeight_kg,sex) %>% 
+  dplyr::summarise(num_rows = n()) %>% 
+  spread(sex,num_rows) %>% 
+  mutate(`Total` = F + M) %>% 
+  mutate(Ratio_F = F/`Total`) 
+
+# creating ground/ and survey totals for:
+
+#St Helens
+TSH <- Roughy_2_sum %>% 
+  filter(Ground == "St Helens") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Helens Total")
+
+#St Patricks
+TSP <- Roughy_2_sum %>% 
+  filter(Ground == "St Patricks") %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(ShotWeight_kg =sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "St Patricks Total")
+
+# totals for SH and SP
+TSHSP <- Roughy_2_sum %>% 
+  summarise(ShotWeight_kg = sum(ShotWeight_kg, na.rm = TRUE), F= sum(F), M = sum(M), Total =sum(Total)) %>% 
+  mutate(Ground = "Survey Total")
+
+#bind the shot and subtotals and total
+t2.4 <- bind_rows(Roughy_2_sum, TSH, TSP,TSHSP) %>%   # put all together for totals
+  dplyr::rename("Shot Weight (kg)" = ShotWeight_kg, "Total Nos Fish" = Total)
+  
+
+write.csv(t2.4,"Figures/t2.4.csv")
+
+knitr::kable(head(t2.4, n=20), format = "html", caption = "Table 2.4 Summary of shot dates and weights for St Helens and St Patricks, Eastern Zone, 2019") %>% 
+  kableExtra::kable_styling("striped") %>%
+  kableExtra::scroll_box(width  = "100%")
+```
+
+## Data by shot: Length and derived
+
+```{r}
+Roughy_2_sum_L <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgL = mean(Length)) %>% 
+  spread(sex,avgL) %>% 
+  mutate(F_Lgt =round(F,2), M_Lgt =round(M,2)) %>% 
+  select(-F,-M)
+  
+                     
+Roughy_2_sum_W <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgW = mean(Wgt_derived)) %>%
+  spread(sex,avgW) %>% 
+  mutate(F_Dw =round(F,2), M_DW =round(M,2)) %>% 
+  ungroup() %>% 
+  select(-F,-M,-Ground,-Shot)
+                  
+Roughy_2_sum_WFM <- Roughy_2 %>% 
+  dplyr::group_by(Ground,Shot,sex) %>% 
+  dplyr::summarise(avgWFM = mean(Wgt_derived_MF)) %>%
+  spread(sex,avgWFM) %>% 
+  mutate(F_wFM =round(F,2), M_wFM =round(M,2)) %>% 
+  ungroup() %>% 
+  select(-F,-M,-Ground,-Shot)
+                   
+                   #avgwgt = mean(Wgt_derived),avgwgtMF = mean(Wgt_derived_MF)) 
+shotdata_LWW <- bind_cols(Roughy_2_sum_L,Roughy_2_sum_W,Roughy_2_sum_WFM)
+  
+  # t2.4 <- bind_rows(Roughy_2_sum, TSH, TSP,TSHSP) %>%   # put all together for totals
+  # dplyr::rename("Shot Weight (kg)" = ShotWeight_kg, "Total Nos Fish" = Total)
+
+
+
+```
+
+### Standard Length by sex and ground
+```{r myfig2.2}
+OR_LF <- Roughy_2 %>% # This is the ONE
+  group_by(Ground, sex) %>% 
+  add_tally() %>% 
+  group_by(Ground, sex, Length) %>% 
+  dplyr::summarise(prop = n() / n[1])
+
+f2.2 <- ggplot(OR_LF, aes(Length, prop, fill = sex)) +
+  geom_col(position = "identity", alpha = 0.6) +
+  scale_x_continuous(breaks = seq(28,46,2),limits = c(28,46))+
+  facet_wrap(~Ground)+
+   theme_bw()+
+  ylab("proportion")+
+  xlab("Length (cm)")+
+  theme(legend.position = "bottom")
+plot(f2.2)
+ggsave(filename = "Figures/LF2024.emf")
+ggsave(filename = "Figures/LF2024.jpg")
+```
+
+
+### Cummunlative Frequency
+```{r myfig2.3}
+
+#using stat_ecdf to calculate the cummulative frequency
+
+f2.3 <- ggplot(Roughy_2,aes(x=Length, colour= sex)) +
+   stat_ecdf(geom = "smooth")+
+  scale_x_continuous(breaks = seq(28,44,2),limits = c(28,44))+
+  scale_y_continuous(breaks = seq(0,1,0.2))+
+  facet_wrap(~Ground)+
+  ylab("cummulative frequency")+
+  xlab("Length (cm)")+
+  theme_bw()+
+  theme(legend.position = "bottom")
+plot(f2.3)
+ggsave(filename = "Figures/cumLF2024.emf")
+```
+
+## Mode and Numbers of fish by Year, Ground, Sex 
+
+```{r Table2.5}
+#need to group by Ground and sex togehter so need to make a combined variable
+Roughy_3 <- Roughy_1 %>% 
+  mutate(GbyS= paste(Ground,sex,sep = "_")) %>%  #new variable to combine Ground and sex 
+  group_by(GbyS) %>% 
+  mutate(sumsum = cumsum(Length))
+
+
+#create function to find the mode
+Mode <- function(x) {
+    if (is.numeric(x)) {
+        x_table <- table(x)
+        return(as.numeric(names(x_table)[which.max(x_table)]))
+        }
+}
+
+#calcuate the mode
+Roughy_mode <- Roughy_3 %>% 
+  dplyr::group_by(year,GbyS) %>%
+  dplyr::summarise(Mode = Mode(x = Length))%>%
+  spread(GbyS, Mode) 
+#calcuate the  counts
+Roughy_nos <- Roughy_3 %>% 
+  dplyr::group_by(year, GbyS) %>%
+  dplyr::summarise(Numbers = n())%>%
+  spread(GbyS, Numbers)
+
+#bind the mode and counts
+R_Mode_Count <-  cbind(Roughy_mode,Roughy_nos)%>%
+  select(-6)#remove the year1 colomn
+
+t2.5<-  R_Mode_Count_order <- R_Mode_Count[,c(1,2,6,3,7,4,8,5,9)]  # order the columns
+  
+  write.csv(t2.5,"Figures/Lmode_index.csv")
+  #note that this table is also saved as t2.4.doc in "OR Tables.Rmd"
+ 
+knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode", "Nos. Fish","Mode"), format = "html", caption = " Figure 2.5. Number of Fish measured and mode of standard lengths (cm) for male and femailes measured at St Helens and St Particks from 1987 to 2019") %>% 
+  kableExtra::kable_styling("striped") %>%
+  add_header_above(c(" ", "Female" = 2, "Male" = 2, "Female" = 2, "Male"=2)) %>%
+    add_header_above(c(" ", "St Helens" = 4, "St Patricks" = 4)) %>%
+    kableExtra::scroll_box(width = "100%")
+
+```
+
+## Average Length by Shot
+### Figure 2.4
+```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+
+library(gridExtra) #for function grid.arrange
+
+#average SL by Area and sex
+Roughy_2_lengthsum <- summarySE(Roughy_2, measurevar = "Length", groupvars = c("Shot","Date","Ground","sex")) %>% 
+
+  mutate(Shot = as.character(Shot)) %>% 
+  arrange(Length)
+
+pd <- position_dodge(0) # in case need to experiment with operlap of values - this was not required so set 0
+
+SH <- ggplot(Roughy_2_lengthsum %>% 
+               filter(Ground == "St Helens"),
+             aes(x = reorder(Shot, sort((Shot))),y = Length, colour = sex)) +
+    geom_errorbar(aes(ymin = Length - se, ymax= Length + ci),
+                width =.7, position = pd) +
+   geom_point( position = pd, size = 2, width = 1)+
+# facet_grid(.~Date, 
+ #           scales = "free_x")+ # ony dates with values are included
+  theme_bw()+
+  theme(panel.spacing = unit(0, "mm"), # remove spacing between facets
+        
+        strip.background = element_rect(size = 0.1), # match default line size of theme_classic)
+        strip.text.x = element_text(size =8))  +       # change font size
+  theme(legend.position = c(.97, .05), #position legend bottom right
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'))+
+   scale_y_continuous(breaks = seq(32,40,1),limits = c(32,40))+ 
+  xlab("Shot Number, St Helens")+
+  ylab("Average Standard Length (cm)")
+
+SP <- ggplot(Roughy_2_lengthsum %>% 
+               filter(Ground =="St Patricks"),
+             aes(x = reorder(Shot, sort((Shot))),y = Length, colour = sex)) +
+    geom_errorbar(aes(ymin = Length - ci, ymax= Length + ci),
+                width =.7, position = pd) +
+   geom_point( position = pd, size = 2)+
+    #facet_grid(.~Date, scales = "free_x")+
+  theme_bw()+
+  theme(legend.position = c(.97, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'))+
+     theme(panel.spacing = unit(0, "mm"),                      
+        strip.background = element_rect(size = 0.1),
+        strip.text.x = element_text(size =8))  +
+  scale_y_continuous(breaks = seq(32,40,1),limits = c(32,40))+
+  xlab("Shot Number, st Patricks")+
+  ylab("") #removes y axis
+
+
+grid.arrange(SH,SP,ncol=2, widths= c(5,4)) #arrange plot into a grid (this does not save it only plots to view)
+
+f2.4 <- arrangeGrob(SH, SP,ncol = 2, widths = c(5,4)) # creates plot as an object
+
+                 
+ggsave("Figures/shotvariablity.emf",f2.4) # saves the plot to file :)
+```
+
+### Gonad Stages
+```{r f2.5}
+#need to group the frame by sex 
+Roughy_4 <- Roughy_1%>%
+  filter(year==2024) %>% 
+  mutate(stage = as.character(stage))%>% 
+ # mutate(Shot = as.character(Shot)) %>% 
+  mutate(Date= as.Date(Date,"%d/%m")) %>% 
+  #select(-Date) %>% 
+  group_by(sex)
+
+OR2024_sumFH <- Roughy_2_lengthsum %>% 
+  filter(Ground == "St Helens", sex == "F")
+OR2024_sumMH <- Roughy_2_lengthsum %>% 
+  filter(Ground == "St Helens", sex == "M")
+OR2024_sumFP <- Roughy_2_lengthsum %>% 
+  filter(Ground == "St Patricks", sex == "F")
+OR2024_sumMP <- Roughy_2_lengthsum %>% 
+  filter(Ground == "St Patricks", sex == "M")
+
+# Fsh <- ggplot(Roughy_4 %>% 
+#   filter(Ground == "St Helens", sex == "F"),
+#   aes(x = Date, fill = stage))+
+#   geom_bar(position = "fill")+
+#   scale_fill_manual(values = c("yellow","orange","red","grey"))+
+#   theme(axis.text=element_text(size=9))+
+#  facet_grid(.~Shot, scales = "free_x", switch ="x")+
+#   theme(strip.text.x = element_text(size =8),
+#         panel.spacing = unit(0,"mm"))+ # remove spacing between facets
+#   theme(legend.position = "none")+
+#   theme(axis.title.y = element_text(size = 11))+
+#    theme(axis.title.x = element_text(size = 11),  
+#         axis.ticks = element_blank()) +
+#   ylab("Proportion female fish")+
+#   xlab("")
+
+Fsh <- ggplot(Roughy_4 %>% 
+  filter(Ground == "St Helens", sex == "F"),
+  aes(x = Date, fill = stage))+
+  geom_bar(position = "fill")+
+  scale_fill_manual(values = c("yellow","orange","red","grey"))+
+  theme(axis.text= element_blank())+
+ facet_grid(.~Shot, scales = "free_x", switch ="x")+
+  theme(strip.text.x = element_text(size =8),
+        panel.spacing = unit(0,"mm"))+ # remove spacing between facets
+  #theme(legend.position = "none")+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+  theme(axis.title.y = element_text(size = 8))+
+   theme(axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank()) +
+  ylab("Proportion female fish")+
+  xlab("")
+
+Msh <- ggplot(Roughy_4 %>% 
+  filter(sex == "M",Ground =="St Helens"),
+  aes(x = Date, fill = stage))+
+  geom_bar(position = "fill")+
+  scale_fill_manual(values = c("yellow","orange","red","grey","black"))+
+  theme(axis.text= element_blank())+
+ facet_grid(.~Shot, scales = "free_x", switch ="x")+
+    theme(strip.text.x = element_text(size =8),
+        panel.spacing = unit(0,"mm"), # remove spacing between facets
+        axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank())+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+    theme(axis.title.y = element_text(size = 8))+
+     theme(axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank()) +
+  xlab("Shot Number, St Helens")+
+  ylab("Proportion male fish")
+
+Fsp <- ggplot(Roughy_4 %>% 
+  filter(sex == "F",Ground =="St Patricks"),
+  aes(x = Date, fill = stage, ))+
+  geom_bar(position = "fill")+
+  labs(fill = "stage")+
+  scale_fill_manual(values = c("yellow","orange","red","grey"))+
+ theme(axis.text= element_blank())+
+  facet_grid(.~Shot, scales = "free_x", switch ="x")+
+  theme(strip.text.x = element_text(size =8),
+        panel.spacing = unit(0,"mm"))+ # remove spacing between facets
+   theme(axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank()) +
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+   ylab("")+
+   xlab("")
+
+Msp <- ggplot(Roughy_4 %>% 
+  filter(sex == "M",Ground =="St Patricks"),
+  aes(x = Date, fill = stage))+
+  geom_bar(position = "fill")+
+    labs(fill = "stage")+
+    scale_fill_manual(values = c("orange","red","grey","black"))+
+    theme(axis.text= element_blank())+
+  facet_grid(.~Shot, scales = "free_x", switch ="x")+
+    theme(strip.text.x = element_text(size =8),
+        panel.spacing = unit(0,"mm"), # remove spacing between facets
+        axis.title.x = element_text(size = 8),  
+        axis.ticks = element_blank())+
+  theme(legend.text=element_text(size=8))+
+  theme(legend.title = element_text(size =8))+
+  theme(legend.key.size = unit(.3,'cm'))+
+  xlab("Shot Number, St Patricks")+
+  ylab("")
+
+plot(Fsh)
+plot(Msh)
+plot(Fsp)
+plot(Msp)
+
+grid.arrange(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(14,10), heights= c(8,8)) #arrange plot into a grid (this does not save it only plots to view)
+
+f2.5 <- arrangeGrob(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(11,8.5), heights= c(5,5)) # creates plot as an object
+
+
+ggsave("Figures/GonadStage.emf",f2.5) # saves the plot to file :)
+ggsave("Figures/GonadStage.jpeg",f2.5) # saves the plot to file :)
+```
+### gonad stage summary
+exploring gonad data
+```{r}
+Roughy_4 %>% 
+  filter(Ground =="St Patricks") %>% 
+  add_tally() %>% 
+  dplyr::group_by(sex,stage) %>% 
+ dplyr::summarise(prop = n()/ n[1]) 
+
+
+Roughy_4 %>% 
+  add_tally() %>% 
+  dplyr::group_by(sex,stage) %>% 
+ dplyr::summarise(n())
+  # group_by(Ground, sex) %>% 
+  # add_tally() %>% 
+  # group_by(Ground, sex, Length) %>% 
+  # dplyr::summarise(prop = n() / n[1])
+```
+
+
+### Table: The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2024 Eastern Zone spawning population.
+
+```{r t2.8}
+  
+# table for SH proportion by sex
+  OR_sHg <- Roughy_2 %>%   
+    filter(Ground == "St Helens") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length), estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+   
+
+#table for SP proportion by sex
+  OR_sPg <- Roughy_2 %>%                                        
+    filter(Ground == "St Patricks") %>%
+    dplyr::group_by(Ground, sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = c("F","M"))
+  
+# table for Grounds combined sexes  
+ OR_SHSPbg <- Roughy_2 %>%                                      
+    dplyr::group_by(Ground) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex = "M & F")
+
+# table for sex combined grounds 
+ OR_sex <- Roughy_2 %>%                                      
+    dplyr::group_by(sex) %>%
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(Ground = "SH and SP")
+ 
+# table for survey
+ OR_survey <- Roughy_2 %>% 
+    #ungroup(sex) %>% 
+    dplyr::summarise(n = n(), mean = mean(Length),estimated_wgt = mean(Wgt_derived), est_wgt_FM = mean(Wgt_derived_MF)) %>%
+    mutate(Proportion = n / sum(n)) %>% 
+    mutate(sex ="all fish",
+           Ground = "Survey total")
+ 
+v# bind all the tables together, create and rename some coloumns, round off new columns
+t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
+  mutate("Estimated weight (kg) based on combined Lyle et al (1991)"
+         = (0.037*(mean)^2.952)/1000) %>% 
+  mutate("Estimated weight (kg) based on sex specific Lyle et al (1991)" =
+           if_else(sex == "F",(0.0351 *(mean) ^ 2.970)/1000,
+          if_else(sex == "M",(0.0383 * (mean) ^ 2.942)/1000,
+                   (0.037*(mean)^2.952)/1000))) %>%
+  dplyr::rename("No of fish" = n, "Avg length (cm)" 
+                = mean, "Spawning Ground"= Ground, "Prop"=Proportion) %>% 
+  dplyr::mutate_at(4:7, funs(round(.,4)))
+
+knitr::kable(tail(t2.8, n = 9), format = "html", caption = "Table 2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+
+  kableExtra::kable_styling("striped") %>%
+
+  kableExtra::scroll_box(width = "100%")
+
+write.csv(t2.8,"Figures/Prop_sex_Lylewt.csv")
+```
+
+### roughy weight - no weight for 2024
+
+note that this graph has been corrected. The 2019 report the combined Lyle formula was incorrect. The  Lyle formula for Males (Lyle_com_Males) was used instead of the combined sex formula (Lyle_com)
+
+```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+Lyle_com <- function(x) {(0.037 * (x) ^ 2.952)}
+#Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
+S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)}
+S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)}
+S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)}
+
+  RoughyWeight<- Roughy%>%
+    filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(weight_g = weight_kg *1000) %>%
+    mutate(year=as.factor(year))
+
+
+f2.6<- ggplot(data = RoughyWeight,
+       mapping = aes(x  = SLadj_cm,
+                     y = weight_g, colour = sex)) +
+  scale_colour_manual(values = c("red", "blue"))+
+  geom_point(size = .3)+
+  scale_x_continuous(breaks = seq(20,50,4),limits = c(20,50))+
+  ylab("weight (g)")+
+  xlab("Standard length (cm)")+ 
+  stat_function(fun = S2019F_fun, colour="red")+
+  stat_function(fun = S2019M_fun, colour = "blue") +
+  stat_function(fun = Lyle_com, colour ="black")+
+  #stat_function(fun = Lyle_com_1, colour ="pink")+
+  stat_function(fun = S2019_fun, colour ="orange")+
+  theme_bw()+
+  
+  annotate('text', x = 22, y = 3800, size =4,hjust =0,
+           label = expression(paste("Weight"["Lyle sex combined"]^{}, 
+                                    " = 0.037 * Length"^{2.952})))+
+  
+  annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
+           label = expression(paste("Weight"["2019 sex combined"]^{},
+                                    " = 0.056 * Length"^{2.850})))+
+  
+  annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
+           label = expression(paste("Weight"["2019 Females"]^{},
+                                    "= 0.071 * Length"^{2.769}))) +
+  
+  annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
+           label = expression(paste("Weight"["2019 Males"]^{},
+                                    " = 0.073 * Length"^{2.794})))
+
+plot(f2.6)
+ggsave("Figures/LvsW.emf",f2.6) # saves the plot to file :)
+ggsave("Figures/LvsW.jpg",f2.6) # saves the plot to file :)
+ggsave("Figures/LvsW.tiff",f2.6) # saves the plot to file :)
+
+
+```
+
+### Figure 2.7a
+Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population from 1987 to 2019 for both grounds combined, showing the predicted values (plotted black line) from Lyle (1991).
+
+NOTE - this has been corrected as per the above - the correct combined Lyle formula has replaced the Lyle Male formula!!
+
+
+* Lyle et al. Combined length – weight regression. 
+      W = 3.7*10-2 * ^2.952
+      
+Lyle et al. Female length – weight regression. 
+    W = 3.51*10-2 * ^2.970
+    
+Lyle et al. Male length – weight regression. 
+      W = 3.83*10-2 * ^2.942 and 
+
+
+```{r myfig2.7}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
+
+OR_Weight_series_allyears <-Roughy_1 %>% 
+  #filter(year==2019) %>%
+   #drop_na(weight_kg) %>%
+   #filter(weight_kg != 0) %>% 
+   mutate(year=as.factor(year)) %>% 
+   mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
+   mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
+                                   (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
+  #mutate(Wgt_derived_F = (0.0351 * SLadj_cm ^ 2.970)/1000) %>% 
+  #mutate(Wgt_derived_M = (0.0383 * SLadj_cm ^ 2.942)/1000) %>% 
+  mutate(MvsD = weight_kg / Wgt_derived_MF) %>%      
+  mutate(percentchange = ((weight_kg - Wgt_derived_MF)/ weight_kg)) %>% 
+  mutate(wgt_diff = Wgt_derived_MF - weight_kg) %>% 
+  arrange(sex)
+```
+
+OR Weight vs Length series by year
+
+```{r}
+OR_Weight_series <- OR_Weight_series_allyears %>%
+  drop_na(weight_kg) %>%
+  filter(weight_kg != 0)
+    
+
+Lyle_com_kg <- function(x) {(0.037 * (x) ^ 2.952)/1000}
+    
+f2.7<- ggplot(data = OR_Weight_series,
+       mapping = aes(x  = Length,
+                     y = weight_kg, colour = year)) +
+  geom_point()+
+  #geom_smooth(method="glm", method.args=list(family=gaussian(link="log")),
+  #colour = "blue", linetype = 2, size = .5)+
+  ylab("weight (kg)")+
+  xlab("Standard length (cm)")+            
+  stat_function(fun = Lyle_com_kg, colour ="black")+
+  facet_wrap(~year)
+
+plot(f2.7)
+ggsave("Figures/LWindex.emf",f2.7)
+ggsave("Figures/LWindex.jpg",f2.7)# saves the plot to file :)
+plot(f2.7)
+
+```
+
+## calculate change in LW relationship
+
+```{r}
+
+  OR_Weight_series %>% 
+  group_by(Ground,year) %>% 
+  dplyr::summarise(n(),MvsD = round(mean(MvsD),2),
+                   perchange = round(mean(percentchange),2))
+                  
+
+
+```
+
+Plot measured vs predicted weights
+
+```{r}
+
+OR_Weight_series_sum <- summarySE(OR_Weight_series, measurevar = "MvsD", groupvars = c("year","Ground")) 
+
+knitr::kable(tail(OR_Weight_series_sum, n = 9), format = "html", caption = "Table 2.8 The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2019 Eastern Zone spawning population") %>% 
+
+  kableExtra::kable_styling("striped") %>%
+
+  kableExtra::scroll_box(width = "100%")
+```
+
+
+Plot the weight data series
+```{r}
+pd <- position_dodge(.2)  
+
+f_Wgt_ratio <- ggplot(OR_Weight_series_sum, aes(x=year, y = MvsD, 
+                                                shape = Ground))+
+  geom_errorbar(aes(ymin = MvsD - ci, ymax = MvsD + ci),
+                width = 0.3, position = pd) +
+  geom_point(position = pd, size = 2)+
+  geom_line()+
+  ylab("Measured / Derived (Lyle 1991) Weight (kg)")+
+  xlab("Eastern Zone Spawning Population by Year for July")+
+  theme_bw()+
+   theme(legend.position = c(.95, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+ 
+
+plot(f_Wgt_ratio)
+ggsave("Figures/f_Wgt_ratio.jpg",f_Wgt_ratio)
+ggsave("Figures/f_Wgt_ratio.emf",f_Wgt_ratio)
+```
+
+weight data for 2019
+
+```{r}
+Wgt_2019_GroundFM <- OR_Weight_series %>% 
+  filter(year == 2019) %>% 
+  dplyr::group_by(Ground,sex) %>% 
+  dplyr::summarise(n= n(), measured = mean(weight_kg), derived = mean(Wgt_derived_MF), mean(MvsD)) %>% 
+  mutate(Proportion = n / sum(n)) 
+
+Wgt_ground <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF), mean(Wgt_derived))
+
+Wgt_sex <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF))
+
+Wgt_sex <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF))
+
+wgt_survey <- OR_Weight_series %>% 
+  filter(year == 2019) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived))
+```
+
+weight data for 2024
+
+```{r}
+Wgt_2024_GroundFM <- OR_Weight_series_allyears %>% 
+  filter(year == 2024) %>% 
+  dplyr::group_by(Ground,sex) %>% 
+  dplyr::summarise(n= n(), derived = mean(Wgt_derived_MF)) %>% 
+  mutate(Proportion = n / sum(n)) 
+
+Wgt_ground_2024 <- OR_Weight_series_allyears %>% 
+    filter(year == 2024) %>% 
+  dplyr::group_by(Ground) %>% 
+  dplyr::summarise(n(),mean(Wgt_derived_MF))
+
+Wgt_sex_2024 <- OR_Weight_series_allyears %>% 
+    filter(year == 2024) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(Wgt_derived_MF))
+
+Wgt_sex <- OR_Weight_series %>% 
+    filter(year == 2019) %>% 
+  dplyr::group_by(sex) %>% 
+  dplyr::summarise(n(), mean(weight_kg), mean(Wgt_derived_MF))
+
+wgt_survey_2024 <- OR_Weight_series_allyears %>% 
+  filter(year == 2024) %>% 
+  dplyr::summarise(n(), mean(Wgt_derived))
+```
+
+
+# Age 
+
+Read in age data
+```{r}
+Age <- read_csv("Results/RoughyEZ_AgeIndex_1986to2019.csv")
+Age2024_Owgt <- read_csv("Data/Roughy_Age2024_owgt.csv")
+Age_2019 <- read_csv("Data/RoughyAge2019.csv")
+```
+
+take a look at the data Age index data
+```{r}
+Age%>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE))
+```
+need to add age data from 2019
+need to add otolith weight data from 2024
+ototlith age data not yet available for 2024
+
+## Add 2019 otolith age data 
+
+
+remove the 2019 data from the AgeIndex and add the 2019 data that inlcudes the "Age" data.
+
+```{r}
+Age_filtered <- Age %>% 
+  filter(Year != 2019) %>% 
+  dplyr::rename(Month=month) %>% 
+  mutate(as.character(Month))
+```
+
+take a look at the data Age index data
+
+```{r}
+Age_filtered%>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+```
+
+add the 2019 age dataset
+
+what columns are required
+```{r}
+colnames(Age_filtered)
+colnames(Age_2019)
+```
+
+select 2019 fields
+
+```{r}
+Age_2019ed <- Age_2019 %>% 
+  select(Zone, Ground = AreaCapture, Year, Month, Age= `Age1...14`, Sex,Length_1, O= `Otolith_eight (g)`) %>% 
+   mutate(as.character(Month)) %>% 
+  mutate(length_cm = Length_1/10)
+  #filter(Age >0) no age data currently
+
+Age_2019ed %>% 
+  dplyr::group_by(Sex,Year) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE), mean(Age,na.rm = TRUE))
+```
+
+bind 2019 rows to Age Index, rename Age
+
+```{r}
+Age_1 <- Age_filtered %>% 
+  bind_rows(Age_2019ed)
+  # mutate(Sex_no = Sex) %>% 
+  # mutate(Sex= as.factor(Sex)) %>% 
+  # mutate(Sex = case_when(Sex == "1"~"M", TRUE~as.character(Sex))) %>%
+  # mutate(Sex = case_when(Sex == "2"~"F", TRUE~as.character(Sex))) 
+```
+
+check data
+
+```{r}
+Age_1 %>% 
+  dplyr::group_by(Year,Sex,) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+```
+
+Add the 2024 Age data - otolith weight as proxy
+
+```{r}
+colnames(Age_1)
+colnames(Age2024_Owgt)
+
+```
+
+standardise new data to the Age Index
+
+add columns
+```{r}
+Age2024<- Age2024_Owgt %>% 
+  select(Zone,Shot,Sex, Length_cm = Length_1, O = Oto_Wght) %>% 
+  add_column(Mark = NA, Sex_no = NA) 
+  # mutate(as.character(Month))
+```
+
+bind to shot data to get Location!
+```{r}
+Age2024 <- Age2024 %>% 
+  left_join(Shot2024_ed, by = "Shot")
+```
+
+select matching columns
+
+```{r}
+colnames(Age_1)
+
+Age2024 <- Age2024 %>% 
+  select(Zone, Ground = Location, Year, Month, Sex, Length_cm, O, Mark, Sex_no)
+
+```
+
+bind data
+```{r}
+Age_2 <- Age_1 %>% 
+  dplyr::bind_rows(Age2024) %>% 
+   filter(Sex=="M"|Sex=="F")
+```
+
+check data
+
+```{r}
+Age_2 %>% 
+  dplyr::group_by(Year,Sex,) %>% 
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+ 
+```
+
+## Plot Age data: Age and otolith weight
+
+```{r}
+O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+Age_Sum <- summarySE(Age_2, measurevar = "Age", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+
+pd <- position_dodge(0.5) # move position horizontally b/c of overlap
+
+f2.7 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average otolith weight (g)")+
+  scale_y_continuous(breaks = seq(.05,0.3,.05),limits = c(0,0.28))+
+  scale_x_continuous(limits = c(1986,2026), breaks = seq(1986,2026,4))+
+  theme_bw()+
+  theme(legend.position = c(.25, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+
+
+f2.8 <- ggplot(Age_Sum, aes(x = Year,y = Age, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = Age - ci, ymax= Age + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average age (years)")+
+  scale_y_continuous(breaks = seq(20,70,10),limits = c(20,70))+
+  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
+  theme_bw()+
+  theme(legend.position = c(.25, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+
+plot(f2.7)
+ggsave("Figures/Age_owgt.emf")
+ggsave("Figures/Age_owgt.jpg")
+plot(f2.8)
+ggsave("Figures/Age_years.emf")
+ggsave("Figures/Age_owgt.jpg")
+```
+### Figure 2.9 Otolith weight by year
+```{r myfig2.9}
+
+O_Sum <- summarySE(Age_2, measurevar = "O", groupvars = c("Year","Ground","Sex"),na.rm = TRUE) 
+
+# Otolith Weight vs time series
+f2.9 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
+  geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+                width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_line(position = pd) +
+  xlab("Eastern Zone Spawning Population by year for July")+
+  ylab("Average otolith weight (g)")+
+  scale_y_continuous(breaks = seq(.1,0.28,.02),limits = c(.1,0.28))+
+  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
+  theme_bw()+
+  theme(legend.position = c(.2, .05),
+        legend.justification = c(1,0),
+        legend.text =element_text(size=8),
+        legend.title = element_text(size = 9, margin = margin(t=.05)),
+        legend.spacing.y =unit(.05,'cm'),
+        plot.background = element_rect(linetype =  "solid") )
+plot(f2.9)
+ggsave("Figures/Age_Owgt.emf")
+ggsave("Figures/Age_Owgt.jpg")
+
+
+write.csv(Age_2,"Results/Otolith_wt.csv")
+```
+
+### Age regression
+
+```{r}
+AgeRegression <- summarySE(Age_2, measurevar = "Age", groupvars = c("Year","Sex", "Ground"),na.rm = TRUE) 
+
+ggplot(AgeRegression, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+#ggplot(AgeRegression, aes(x = Year,y = Age)) +
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+```
+Regression for data up to 2019 by sex and ground
+```{r}
+A_SHF <- AgeRegression %>% 
+  filter(Sex == "F") %>% 
+  filter(Ground == "St Helens")
+
+A_SHM <- AgeRegression %>% 
+  filter(Sex == "M") %>% 
+  filter(Ground == "St Helens")
+
+A_SPF <- AgeRegression %>% 
+  filter(Sex == "F") %>% 
+  filter(Ground == "St Patricks")
+
+A_SPM <- AgeRegression %>% 
+  filter(Sex == "M") %>% 
+  filter(Ground == "St Patricks")
+
+regression_shf <- lm(Age ~ Year , data = A_SHF)
+regression_shm <- lm(Age ~ Year , data = A_SHM)
+regression_spf <- lm(Age ~ Year , data = A_SPF)
+regression_spm <- lm(Age ~ Year , data = A_SPM)
+
+#Short summary of the model
+
+
+#Longer summary of the model
+summary(regression_shf)
+summary(regression_shm)
+summary(regression_spf)
+summary(regression_spm)
+```
+Regression for recent data 
+```{r}
+Age_recent <- AgeRegression %>% 
+  filter(Sex == "F" & Ground == "St Helens") %>% 
+  filter(Year >= 2010)
+
+  distinct(Age_recent, Year)
+
+ggplot(Age_recent, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+
+
+
+regression_recent <- lm(Age ~ Year, data = Age_recent)
+
+
+#Longer summary of the model
+summary(regression_recent)
+```
+results
+SH F, Year          0.0040  
+SH M, Year           0.3357
+SP F, Year           0.1016 NS
+SP M, Year          0.02392 NS
+
+checking Rudy's statistics.. 
+all good :)
+```{r}
+Age_2016 <- AgeRegression %>% 
+  filter(Year <= 2016)%>% 
+  #filter(Year >= 2010) %>% 
+  filter(Sex == "F" & Ground == "St Patricks")
+
+ggplot(Age_2016, aes(x = Year,y = Age, colour = Sex, shape = Ground)) +
+  
+  # geom_errorbar(aes(ymin = O - ci, ymax= O + ci),
+  #               width =.7, position = pd) +
+  geom_point( position = pd, size = 2)+
+  geom_smooth(method='lm')
+
+
+
+#regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
+regression_2016 <- lm(Age ~ Year, data = Age_2016)
+
+#Longer summary of the model
+summary(regression_2016)
+```
+
+### compare ototlith weight between 2019 and 2024
+
+```{r}
+Owgt_2024 <- Age_2 %>% 
+  filter(Year == 2019 | Year == 2024)
+  #filter(Year == 2019 | Year == 2016)
+  #filter(Year >= 2010) %>% 
+
+Owgt_2024 %>%
+
+  dplyr::group_by(Year,Sex) %>%
+
+  dplyr::group_by(Sex) %>%
+
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+
+#regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
+regression_Owgt_2024 <- lm(O ~ Year + Sex + Ground, data = Owgt_2024)
+
+#Longer summary of the model
+summary(regression_Owgt_2024)
+```
+
+### compare age between 2016 and 2019
+
+```{r}
+Owgt_2024 <- Age_2 %>% 
+  filter(Year == 2019 | Year == 2016)
+  #filter(Year == 2019 | Year == 2016)
+  #filter(Year >= 2010) %>% 
+
+Owgt_2024 %>%
+  dplyr::group_by(Ground, Sex, Year) %>%
+  dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
+
+#regression_2016 <- lm(Age ~ Year + Sex + Ground, data = Age_2016)
+regression_Owgt_2024 <- lm(Age ~ Year + Sex + Ground, data = Owgt_2024)
+
+#Longer summary of the model
+summary(regression_Owgt_2024)
+```
