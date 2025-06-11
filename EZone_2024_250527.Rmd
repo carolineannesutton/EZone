@@ -27,18 +27,25 @@ library(lubridate)
 
 load data
 ```{r}
-# Biological Index
+### Biological Index
 Roughy <- read_csv("Results/OREastern_Tidy_87to2019.csv", col_types = list(ShotWeight_kg = col_double(), mark = col_character()))
 
-Age2019 <- read_csv("Data/RoughyAge2019.csv")
+### AGE
+Age <- read_csv("Results/RoughyEZ_AgeIndex_1986to2019.csv")
+Age2024_Owgt <- read_csv("Data/Roughy_Age2024_owgt.csv")
+Age_2019 <- read_csv("Data/RoughyAge2019.csv")
          
-# 2024 data
+### 2024 data
 Bio2024 <- read_csv("Data/RoughyBiologicals_EZ_2024.csv")
 Shot2024 <- read_csv("Data/RoughyShot_EZ_2024.csv")
 discard2024 <- read_csv("Data/Roughy2024_discards.csv")
 cc <- read_csv("Data/Roughy2024_catchcomp.csv")
 ```
 
+
+----------------------------------------------------------------------------------------
+## Biolgical Index Data  - add the new data
+----------------------------------------------------------------------------------------
 
 manipulate 2024 data
 
@@ -50,14 +57,12 @@ Bio2024_1 <- Bio2024 %>%
   left_join(Shot2024_ed, by = "Shot") 
 ```
 
-## Index data - add new data
-
 explore fields
 ```{r}
 colnames(Roughy)
 colnames(Bio2024_1)
 ```
-add relevant columns
+add relevant columns to the new data
 
 ```{r}
 
@@ -69,12 +74,14 @@ Bio <- Bio2024_1 %>%
    select(zone, year, Area_MS, Survey, Shot, sex = Sex, stage, SLadj_cm, Otoliths, vessel = Vessel, Date= Date.x, ShotWeight_kg = Total_catch_weight_kg)
 ```
 
-append 2024 data to the index data
+append 2024 data to the biological index data
 
 ```{r}
 Roughy <- Roughy %>% 
   bind_rows(Bio_1)
+```
 
+```{r}
 write_csv(Roughy,"Results/Roughy_EZIndex_1987to2024.csv")
 ```
 
@@ -87,10 +94,11 @@ Roughy %>%
   distinct(stage,sex)
 ```
 
-# Table and Figures
+# Tables and Figures
 
+----------------------------------------------------------------------------------------
 ## Summarise bio data 2024
-
+----------------------------------------------------------------------------------------
 ```{r}
 BioSummary24 <- Bio2024_1 %>% 
   dplyr::group_by(Shot,Sex) %>% 
@@ -131,8 +139,13 @@ Write data
 ```{r}
 BioSummary24_ground <- BioSummary24 %>% 
   select(Ground,Shot,retained,discarded) %>% 
-  dplyr::group_by(Ground) %>% 
-  dplyr::summarise(sum(retained),sum(discarded)) 
+  dplyr::group_by(Ground,Shot) %>% 
+  dplyr::summarise(R = sum(retained), D = sum(discarded)) %>% 
+  mutate(TW = R+D) %>% 
+  mutate(discardpct = (D/TW)*100)  
+  
+BioSummary24_ground %>% 
+  summarise(mean(discardpct))
 
 
 ```
@@ -153,6 +166,9 @@ Discard_cc_1 <- Discard_cc %>%
   select(Species,Shot, Ground = Location, TW) %>% 
   drop_na(Ground)
 
+discard_Species <- Discard_cc_1 %>% 
+  dplyr::group_by(Species) %>% 
+  dplyr::summarise(sum(TW))
 
      
 
@@ -162,559 +178,20 @@ Discard_cc_1 <- Discard_cc %>%
 
 
 ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = Shot))+
-  geom_bar(stat = "identity")+
-  facet_wrap(~Ground)
-
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = Shot))+
   geom_bar(stat = "identity")
-
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = as.factor(Shot))) +
-  geom_bar(stat = "identity", color = "black", position = "stack") +
-  labs(fill = "Shot Number")  # Customize legend title
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = as.factor(Shot))) +
-  geom_bar(stat = "identity", color = "black", position = "stack") +
-  labs(fill = "Shot Number", x = "Tow (TW)", y = "Species Value") +
-  theme_minimal() +
-  theme(legend.position = "right")
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = factor(Shot))) +
-  geom_bar(stat = "identity", color = "black", position = "stack") +
-  labs(fill = "Shot Number")
-
-
-# Generate a gradient palette (e.g., shades of blue) with N levels
-n_shots <- length(unique(Discard_cc_1$Shot))
-shot_levels <- sort(unique(Discard_cc_1$Shot))
-shot_colors <- seq_gradient_pal("lightblue", "darkblue", "Lab")(seq(0, 1, length.out = n_shots))
-names(shot_colors) <- as.character(shot_levels)
-
-# Plot
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = factor(Shot))) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = shot_colors) +
-  labs(fill = "Shot Number")
-
-#######################################
-
-# Example: ensure Shot and Ground are factors
-# Make sure Shot and Ground are factors
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-# Get levels
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-# Create color gradients for each ground
-color_vector <- c()
-
-for (g in ground_levels) {
-  n_shots <- length(shot_levels)
-  
-  # Assign blue gradient for St Helens, green for St Patricks
-  if (g == "St Helens") {
-    gradient_colors <- seq_gradient_pal("lightblue", "darkblue", "Lab")(seq(0, 1, length.out = n_shots))
-  } else if (g == "St Patricks") {
-    gradient_colors <- seq_gradient_pal("lightgreen", "darkgreen", "Lab")(seq(0, 1, length.out = n_shots))
-  } else {
-    # Default gray if other grounds exist
-    gradient_colors <- seq_gradient_pal("grey90", "grey30", "Lab")(seq(0, 1, length.out = n_shots))
-  }
-  
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  names(gradient_colors) <- combined_levels
-  color_vector <- c(color_vector, gradient_colors)
-}
-
-# Reorder color_vector to match factor levels
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-# Plot
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Total Weight (TW)", y = "Species / Taxa Group") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-
-###############################################
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-color_vector <- c()
-
-for (g in ground_levels) {
-  n_shots <- length(shot_levels)
-  
-  if (g == "St Helens") {
-    # Stronger blue gradient: from very light cyan to deep navy blue
-    gradient_colors <- seq_gradient_pal("#E0FFFF", "#000080", "Lab")(seq(0, 1, length.out = n_shots))
-  } else if (g == "St Patricks") {
-    # Stronger green gradient: from pale green to deep forest green
-    gradient_colors <- seq_gradient_pal("#CCFFCC", "#004d00", "Lab")(seq(0, 1, length.out = n_shots))
-  } else {
-    gradient_colors <- seq_gradient_pal("grey90", "grey30", "Lab")(seq(0, 1, length.out = n_shots))
-  }
-  
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  names(gradient_colors) <- combined_levels
-  color_vector <- c(color_vector, gradient_colors)
-}
-
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-##################################################
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-# Function to generate clearly spaced colors by manual interpolation
-generate_contrast_colors <- function(start_color, end_color, n) {
-  # Generate colors evenly spaced in LAB color space for better perceptual difference
-  colors <- grDevices::colorRampPalette(c(start_color, end_color))(n)
-  return(colors)
-}
-
-color_vector <- c()
-
-for (g in ground_levels) {
-  n_shots <- length(shot_levels)
-  
-  if (g == "St Helens") {
-    # Strong distinct blues - bright cyan to dark royal blue with bigger perceptual jumps
-    gradient_colors <- generate_contrast_colors("#00FFFF", "#00008B", n_shots)
-  } else if (g == "St Patricks") {
-    # Strong distinct greens - bright lime to dark green
-    gradient_colors <- generate_contrast_colors("#32CD32", "#004400", n_shots)
-  } else {
-    # Neutral grays
-    gradient_colors <- generate_contrast_colors("#CCCCCC", "#333333", n_shots)
-  }
-  
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  names(gradient_colors) <- combined_levels
-  color_vector <- c(color_vector, gradient_colors)
-}
-
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-#######################################################
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-# Function to generate colors with bigger perceptual jumps by limiting number of shades and picking evenly spaced ones
-generate_stepped_colors <- function(start_color, end_color, n_steps, n_needed) {
-  # Generate a big palette first (n_steps), then pick n_needed colors evenly spaced out
-  big_palette <- grDevices::colorRampPalette(c(start_color, end_color))(n_steps)
-  # Pick evenly spaced colors from big palette
-  indices <- round(seq(1, n_steps, length.out = n_needed))
-  stepped_colors <- big_palette[indices]
-  return(stepped_colors)
-}
-
-color_vector <- c()
-
-for (g in ground_levels) {
-  n_shots <- length(shot_levels)
-  
-  if (g == "St Helens") {
-    # Generate a palette with bigger jumps (e.g. 7 steps, pick 5 for 5 shots)
-    gradient_colors <- generate_stepped_colors("#00BFFF", "#00008B", n_steps = 7, n_needed = n_shots)
-  } else if (g == "St Patricks") {
-    gradient_colors <- generate_stepped_colors("#7CFC00", "#004400", n_steps = 7, n_needed = n_shots)
-  } else {
-    gradient_colors <- generate_stepped_colors("#CCCCCC", "#333333", n_steps = 7, n_needed = n_shots)
-  }
-  
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  names(gradient_colors) <- combined_levels
-  color_vector <- c(color_vector, gradient_colors)
-}
-
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-
-##############################
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-# Manually define very distinct blue shades for St Helens
-st_helens_colors <- c(
-  "#003f5c", # very dark blue
-  "#2f4b7c",
-  "#665191",
-  "#a05195",
-  "#d45087",
-  "#f95d6a",
-  "#ff7c43"
-)
-
-# Manually define very distinct green shades for St Patricks
-st_patricks_colors <- c(
-  "#004d00", # very dark green
-  "#237a23",
-  "#47a347",
-  "#6fc46f",
-  "#98d398",
-  "#c0e4c0",
-  "#e6f1e6"
-)
-
-# Adjust length to number of shots
-st_helens_colors <- st_helens_colors[seq_len(length(shot_levels))]
-st_patricks_colors <- st_patricks_colors[seq_len(length(shot_levels))]
-
-color_vector <- c()
-
-for (g in ground_levels) {
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  
-  if (g == "St Helens") {
-    names(st_helens_colors) <- combined_levels
-    color_vector <- c(color_vector, st_helens_colors)
-  } else if (g == "St Patricks") {
-    names(st_patricks_colors) <- combined_levels
-    color_vector <- c(color_vector, st_patricks_colors)
-  } else {
-    # fallback gray scale
-    fallback_colors <- grDevices::colorRampPalette(c("grey90", "grey30"))(length(shot_levels))
-    names(fallback_colors) <- combined_levels
-    color_vector <- c(color_vector, fallback_colors)
-  }
-}
-
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-###########
-
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-shot_levels <- levels(Discard_cc_1$Shot)
-ground_levels <- levels(Discard_cc_1$Ground)
-
-stopifnot(all(ground_levels %in% c("St Helens", "St Patricks")))
-
-# Manually define strong distinct colors for St Helens (blue hues)
-st_helens_colors <- c(
-  "#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43"
-)[seq_along(shot_levels)]
-
-# Manually define strong distinct colors for St Patricks (green hues)
-st_patricks_colors <- c(
-  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0", "#e6f1e6"
-)[seq_along(shot_levels)]
-
-color_vector <- c()
-
-for (g in ground_levels) {
-  combined_levels <- paste(g, shot_levels, sep = "_")
-  if (g == "St Helens") {
-    names(st_helens_colors) <- combined_levels
-    color_vector <- c(color_vector, st_helens_colors)
-  } else if (g == "St Patricks") {
-    names(st_patricks_colors) <- combined_levels
-    color_vector <- c(color_vector, st_patricks_colors)
-  }
-}
-
-# Reorder colors to match ShotGround factor levels exactly
-color_vector <- color_vector[levels(Discard_cc_1$ShotGround)]
-
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-###########################
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    Shot = factor(Shot),
-    Ground = factor(Ground),
-    ShotGround = interaction(Ground, Shot, sep = "_", lex.order = TRUE)
-  )
-
-# Get levels of ShotGround (all combinations in your data)
-all_levels <- levels(Discard_cc_1$ShotGround)
-
-# Extract unique Grounds and Shots from those levels
-# (splitting by underscore to get Ground and Shot parts)
-library(stringr)
-ground_shot_df <- data.frame(
-  ShotGround = all_levels,
-  Ground = str_extract(all_levels, "^[^_]+"),
-  Shot = str_extract(all_levels, "(?<=_).*")
-)
-
-# Define strong distinct blue colors for St Helens
-st_helens_colors <- c(
-  "darkblue","#003f5c", "#2f4b7c", "lightblue","#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43","orange","yellow","beige"
-)
-
-# Define strong distinct green colors for St Patricks
-st_patricks_colors <- c(
-  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0", "#e6f1e6", "white"
-)
-
-# Get unique Shots (to know how many colors needed)
-unique_shots <- unique(ground_shot_df$Shot)
-
-# Assign colors per Ground and Shot
-color_list <- sapply(all_levels, function(level) {
-  parts <- strsplit(level, "_")[[1]]
-  ground <- parts[1]
-  shot <- parts[2]
-  shot_index <- which(unique_shots == shot)
-  
-  if (ground == "St Helens") {
-    # Use color based on shot index; recycle if shots > color length
-    st_helens_colors[(shot_index - 1) %% length(st_helens_colors) + 1]
-  } else if (ground == "St Patricks") {
-    st_patricks_colors[(shot_index - 1) %% length(st_patricks_colors) + 1]
-  } else {
-    "#999999"  # fallback grey for unexpected Grounds
-  }
-})
-
-names(color_list) <- all_levels
-
-# Plot with manual fill scale
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_list, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-
-###############################
-
-# Assuming Discard_cc_1 has columns: TW, Species, Shot, Ground
-
-Discard_cc_1 <- Discard_cc_1 %>%
-  mutate(
-    ShotGround_char = paste(Ground, Shot_num, sep = "_")
-  )
-
-# Create ordered levels
-levels_ordered <- Discard_cc_1 %>%
-  distinct(Ground, Shot_num) %>%
-  arrange(Ground, Shot_num) %>%
-  mutate(ShotGround = paste(Ground, Shot_num, sep = "_")) %>%
-  pull(ShotGround) %>%
-  unique()
-
-# Convert ShotGround_char to factor with ordered levels
-Discard_cc_1$ShotGround <- factor(Discard_cc_1$ShotGround_char, levels = levels_ordered)
-
-# 4. Define manual colors (make sure length matches number of Shots)
-st_helens_colors <- c(
-  "darkblue", "#003f5c", "#2f4b7c", "lightblue", "#665191", "#a05195",
-  "#d45087", "#f95d6a", "#ff7c43", "orange", "yellow", "beige"
-)
-
-st_patricks_colors <- c(
-  "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", "#c0e4c0",
-  "#e6f1e6", "white"
-)
-
-num_shots <- length(levels(Discard_cc_1$Shot))
-st_helens_colors <- st_helens_colors[1:num_shots]
-st_patricks_colors <- st_patricks_colors[1:num_shots]
-
-# 5. Assign colors to each ShotGround level
-all_levels <- levels(Discard_cc_1$ShotGround)
-
-color_vector <- sapply(all_levels, function(level) {
-  parts <- strsplit(level, "_")[[1]]
-  ground <- parts[1]
-  shot_num <- as.numeric(parts[2])
-  shot_index <- which(levels(Discard_cc_1$Shot) == as.character(shot_num))
-  
-  if (ground == "St Helens") {
-    st_helens_colors[shot_index]
-  } else if (ground == "St Patricks") {
-    st_patricks_colors[shot_index]
-  } else {
-    "#999999" # fallback grey for unexpected Grounds
-  }
-})
-
-names(color_vector) <- all_levels
-
-# 6. Plot
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = color_vector, guide = guide_legend(title = "Shot by Ground")) +
-  labs(x = "Tow (TW)", y = "Species Value") +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "right")
-
-################
-# Your original data: Discard_cc_1
-
-# Step 1: Get unique ShotGround levels and order them as you want
-levels_ordered <- sort(unique(Discard_cc_1$ShotGround))
-
-# Step 2: Split levels by ground
-st_helens_shots <- levels_ordered[grepl("St Helens", levels_ordered)]
-st_patricks_shots <- levels_ordered[grepl("St Patricks", levels_ordered)]
-
-# Step 3: Your defined colors (make sure lengths match counts exactly)
-# st_helens_colors <- c(
-#   "darkblue", "#003f5c", "#2f4b7c", "lightblue", "#665191", 
-#   "#a05195", "#d45087", "#f95d6a", "#ff7c43", "orange", "yellow", "beige"
-# )
-
-st_helens_colors <- c(
-  "#800000",  # Maroon
-  "#B22000",  # Firebrick
-  "#FF0000",  # Red
-    "pink",
-  "#FF4500",  # OrangeRed
-  "#FF6347",  # Tomato
-  "#FF7F50",  # Coral
-
-  "#FFA500",  # Orange
-  "yellow",
-  "#FFD700",  # Gold
-  "beige",
-  "white"
-)
-
-# st_patricks_colors <- c(
-#   "#004d00", "#237a23", "#47a347", "#6fc46f", "#98d398", 
-#   "#c0e4c0", "#e6f1e6", "white"
-# )
-
-st_patricks_colors <- c(
-  "#001f3f",  # Navy
-  "#003f5c",  # Dark Blue
-  "#2f4b7c",  # Indigo Blue
-  "#3f6caa",  # Medium Blue
-  "#4682B4",  # Steel Blue
-  "#5dade2",  # Sky Blue
-  "#87cefa",  # Light Sky Blue
-  "#d0e7f9"   # Very Light Blue
-)
-
-# Step 4: Create named vector of colors matching factor levels
-colors_named <- c(
-  setNames(st_helens_colors, st_helens_shots),
-  setNames(st_patricks_colors, st_patricks_shots)
-)
-
-# Step 5: Set ShotGround factor levels in your data to ensure order
-Discard_cc_1$ShotGround <- factor(Discard_cc_1$ShotGround, levels = levels_ordered)
-
-# Step 6: Plot
-ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = ShotGround)) +
-  geom_bar(stat = "identity", color = "black") +
-  scale_fill_manual(values = colors_named) +
-  theme_minimal() +
-  labs(fill = "Shot and Ground") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 ```
+
 
 ```{r}
-unique_shotground_values <- unique(Discard_cc_1$ShotGround_char)
-print("Unique ShotGround values in data:")
-print(unique_shotground_values)
-
-print("Levels ordered:")
-print(levels_ordered)
-
-# Which ShotGround values are NOT in levels_ordered?
-mismatched_levels <- setdiff(unique_shotground_values, levels_ordered)
-print("Values in ShotGround NOT in levels_ordered:")
-print(mismatched_levels)
-
-# Which levels_ordered are NOT in ShotGround?
-missing_in_data <- setdiff(levels_ordered, unique_shotground_values)
-print("Levels in levels_ordered NOT in ShotGround:")
-print(missing_in_data)
+ggplot(Discard_cc_1, aes(x = TW, y = Species, fill = as.factor(Shot))) +
+  geom_bar(stat = "identity", color = "black", position = "stack")+
+  labs(fill = "Shot Number")  # Customize legend title
+  #facet_wrap(~Ground)
 ```
-
 ---
 ### summary table with additional 2024 data
 
-```{r mytable, out.width='100%', echo = T}
+```{r}
 
 
 #remame and select columns
@@ -747,8 +224,9 @@ Roughyminmax <- Roughy_1 %>%
 
 Roughyminmax
 ```
-
+-----------------------------------------------------------------------------------------
 ### Length - index
+-----------------------------------------------------------------------------------------
 Average Standard Length (cm) of orange roughy Eastern Zone spawning population, showing males and females at St Helens and St Patricks for 1987 to 2024. Error bars are 95% confidence limits (updated from Kloser et al. 2016)
 ```{r myfig2.1}
 #average SL by Area and sex
@@ -758,7 +236,7 @@ library(ggplot2)
 
 roughy_sum <- summarySE(Roughy_1, measurevar = "Length", groupvars = c("year","Ground","sex")) 
 
-
+summarySe
   
 pd <- position_dodge(0.6) # move position horizontally b/c of overlap
 
@@ -784,40 +262,19 @@ plot(f2.1)
 ggsave("Figures/LF_index.emf")
 ggsave("Figures/LF_index.jpg")
 ```
-## Roughy series - adding weigth estimates to the data
-
-* Lyle et al. 1991 Pg 63. 
-
-Combined length – weight regression. W = 0.037 * SL ^ 2.952.
-
-Female length – weight regression. W = 0.0351 * SL ^ 2.970
-
-Male length – weight regression. W = 0.0383 * SL ^ 2.942  
 
 
-```{r}
+------------------------------------------------------------------------------------------
+### Length 2024
+------------------------------------------------------------------------------------------
 
-Roughy_1 <-Roughy_1 %>% 
-  #filter(year==2019) %>%
-   #drop_na(weight_kg) %>%
-   #filter(weight_kg != 0) %>% 
-   mutate(year=as.factor(year)) %>% 
-   mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
-   mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
-                                   (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) %>% 
-  mutate(MvsD = weight_kg / Wgt_derived_MF) %>%      
-  mutate(percentchange = ((weight_kg - Wgt_derived_MF)/ weight_kg)) %>% 
-  mutate(wgt_diff = Wgt_derived_MF - weight_kg) %>% 
-  arrange(sex)
-```
 
-## DATA for 2024
 ```{r}
 Roughy_2 <- Roughy_1 %>% 
 filter(year == 2024)
 ```
 
-### length data table
+#### length data table
 exploring the length data
 ```{r}
 
@@ -836,9 +293,10 @@ summarySE(Roughy_3, measurevar = "Length",
                                       groupvars = c("Ground","sex"))
 ```
 
-### summaries
+#### summaries
 
-#### Table 2.4 (needs updating for future surveys to include shot without measures in "OR.R")
+Table 2.4 (needs updating for future surveys to include shot without measures in "OR.R")
+
 ```{r table 2.4, echo=FALSE}
 #need to update code to include shot weights for shots where fish were not measured **
 # fitler data for 2019
@@ -884,7 +342,7 @@ knitr::kable(head(t2.4, n=20), format = "html", caption = "Table 2.4 Summary of 
   kableExtra::scroll_box(width  = "100%")
 ```
 
-## Data by shot: Length and derived
+#### Data by shot: Length and derived
 
 ```{r}
 Roughy_2_sum_L <- Roughy_2 %>% 
@@ -921,7 +379,7 @@ shotdata_LWW <- bind_cols(Roughy_2_sum_L,Roughy_2_sum_W,Roughy_2_sum_WFM)
 
 ```
 
-### Standard Length by sex and ground
+#### Standard Length by sex and ground
 ```{r myfig2.2}
 OR_LF <- Roughy_2 %>% # This is the ONE
   group_by(Ground, sex) %>% 
@@ -943,7 +401,7 @@ ggsave(filename = "Figures/LF2024.jpg")
 ```
 
 
-### Cummunlative Frequency
+#### Cummunlative Frequency
 ```{r myfig2.3}
 
 #using stat_ecdf to calculate the cummulative frequency
@@ -961,7 +419,7 @@ plot(f2.3)
 ggsave(filename = "Figures/cumLF2024.emf")
 ```
 
-## Mode and Numbers of fish by Year, Ground, Sex 
+#### Mode and Numbers of fish by Year, Ground, Sex 
 
 ```{r Table2.5}
 #need to group by Ground and sex togehter so need to make a combined variable
@@ -1007,8 +465,10 @@ knitr::kable(R_Mode_Count_order, col.names = c("", "Nos. Fish","Mode", "Nos. Fis
 
 ```
 
-## Average Length by Shot
-### Figure 2.4
+#### Average Length by Shot
+
+Figure 2.4
+
 ```{r myfig2.4, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
 
 library(gridExtra) #for function grid.arrange
@@ -1071,8 +531,9 @@ f2.4 <- arrangeGrob(SH, SP,ncol = 2, widths = c(5,4)) # creates plot as an objec
                  
 ggsave("Figures/shotvariablity.emf",f2.4) # saves the plot to file :)
 ```
-
+------------------------------------------------------------------------------------------
 ### Gonad Stages
+------------------------------------------------------------------------------------------
 ```{r f2.5}
 #need to group the frame by sex 
 Roughy_4 <- Roughy_1%>%
@@ -1196,7 +657,7 @@ f2.5 <- arrangeGrob(Fsh,Fsp,Msh, Msp, ncol=2, nrow=2, widths= c(11,8.5), heights
 ggsave("Figures/GonadStage.emf",f2.5) # saves the plot to file :)
 ggsave("Figures/GonadStage.jpeg",f2.5) # saves the plot to file :)
 ```
-### gonad stage summary
+#### gonad stage summary
 exploring gonad data
 ```{r}
 Roughy_4 %>% 
@@ -1215,7 +676,9 @@ Roughy_4 %>%
   # group_by(Ground, sex, Length) %>% 
   # dplyr::summarise(prop = n() / n[1])
 ```
-
+----------------------------------------------------------------------------------------
+### sex ratios
+----------------------------------------------------------------------------------------
 
 ### Table: The proportion of male and female fish at each ground and their associated weighted averages for fish length (cm) for the 2024 Eastern Zone spawning population.
 
@@ -1260,7 +723,7 @@ Roughy_4 %>%
     mutate(sex ="all fish",
            Ground = "Survey total")
  
-v# bind all the tables together, create and rename some coloumns, round off new columns
+# bind all the tables together, create and rename some coloumns, round off new columns
 t2.8 <- bind_rows(OR_sHg, OR_sPg, OR_SHSPbg,OR_sex,OR_survey) %>% 
   mutate("Estimated weight (kg) based on combined Lyle et al (1991)"
          = (0.037*(mean)^2.952)/1000) %>% 
@@ -1280,8 +743,10 @@ knitr::kable(tail(t2.8, n = 9), format = "html", caption = "Table 2.8 The propor
 
 write.csv(t2.8,"Figures/Prop_sex_Lylewt.csv")
 ```
-
-### roughy weight - no weight for 2024
+------------------------------------------------------------------------------------------
+### Weight
+------------------------------------------------------------------------------------------
+#### roughy weight vs length  - no weight for 2024, using data from 2019
 
 note that this graph has been corrected. The 2019 report the combined Lyle formula was incorrect. The  Lyle formula for Males (Lyle_com_Males) was used instead of the combined sex formula (Lyle_com)
 
@@ -1339,8 +804,11 @@ ggsave("Figures/LvsW.tiff",f2.6) # saves the plot to file :)
 
 
 ```
+### Weigth vs Length series
 
-### Figure 2.7a
+Figure 2.7a
+
+
 Standard Length (cm) vs weight (kg) for the Eastern Zone spawning population from 1987 to 2019 for both grounds combined, showing the predicted values (plotted black line) from Lyle (1991).
 
 NOTE - this has been corrected as per the above - the correct combined Lyle formula has replaced the Lyle Male formula!!
@@ -1402,7 +870,7 @@ plot(f2.7)
 
 ```
 
-## calculate change in LW relationship
+#### calculate change in LW relationship
 
 ```{r}
 
@@ -1430,6 +898,7 @@ knitr::kable(tail(OR_Weight_series_sum, n = 9), format = "html", caption = "Tabl
 
 
 Plot the weight data series
+
 ```{r}
 pd <- position_dodge(.2)  
 
@@ -1513,15 +982,9 @@ wgt_survey_2024 <- OR_Weight_series_allyears %>%
   dplyr::summarise(n(), mean(Wgt_derived))
 ```
 
-
+------------------------------------------------------------------------------------------
 # Age 
-
-Read in age data
-```{r}
-Age <- read_csv("Results/RoughyEZ_AgeIndex_1986to2019.csv")
-Age2024_Owgt <- read_csv("Data/Roughy_Age2024_owgt.csv")
-Age_2019 <- read_csv("Data/RoughyAge2019.csv")
-```
+------------------------------------------------------------------------------------------
 
 take a look at the data Age index data
 ```{r}
@@ -1539,17 +1002,17 @@ ototlith age data not yet available for 2024
 remove the 2019 data from the AgeIndex and add the 2019 data that inlcudes the "Age" data.
 
 ```{r}
-Age_filtered <- Age %>% 
-  filter(Year != 2019) %>% 
-  dplyr::rename(Month=month) %>% 
+Age_filtered <- Age %>%
+  filter(Year != 2019) %>%
+  dplyr::rename(Month=month) %>%
   mutate(as.character(Month))
 ```
 
 take a look at the data Age index data
 
 ```{r}
-Age_filtered%>% 
-  dplyr::group_by(Sex,Year) %>% 
+Age_filtered%>%
+  dplyr::group_by(Sex,Year) %>%
   dplyr::summarise(mean(O,na.rm = TRUE),mean(Age,na.rm = TRUE), n())
 ```
 
@@ -1678,7 +1141,7 @@ f2.8 <- ggplot(Age_Sum, aes(x = Year,y = Age, shape = Ground, colour = Sex)) +
   xlab("Eastern Zone Spawning Population by year for July")+
   ylab("Average age (years)")+
   scale_y_continuous(breaks = seq(20,70,10),limits = c(20,70))+
-  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
+  scale_x_continuous(limits = c(1986,2020), breaks = seq(1986,2020,4))+
   theme_bw()+
   theme(legend.position = c(.25, .05),
         legend.justification = c(1,0),
@@ -1708,7 +1171,7 @@ f2.9 <- ggplot(O_Sum, aes(x = Year,y = O, shape = Ground, colour = Sex)) +
   xlab("Eastern Zone Spawning Population by year for July")+
   ylab("Average otolith weight (g)")+
   scale_y_continuous(breaks = seq(.1,0.28,.02),limits = c(.1,0.28))+
-  scale_x_continuous(limits = c(1986,2022), breaks = seq(1986,2022,4))+
+  scale_x_continuous(limits = c(1986,2026), breaks = seq(1986,2026,4))+
   theme_bw()+
   theme(legend.position = c(.2, .05),
         legend.justification = c(1,0),
@@ -1721,7 +1184,7 @@ ggsave("Figures/Age_Owgt.emf")
 ggsave("Figures/Age_Owgt.jpg")
 
 
-write.csv(Age_2,"Results/Otolith_wt.csv")
+write.csv(Age_2,"Results/RoughyEZ_AgeIndex_1986to2024.csv")
 ```
 
 ### Age regression
