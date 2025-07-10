@@ -236,7 +236,7 @@ library(ggplot2)
 
 roughy_sum <- summarySE(Roughy_1, measurevar = "Length", groupvars = c("year","Ground","sex")) 
 
-summarySe
+
   
 pd <- position_dodge(0.6) # move position horizontally b/c of overlap
 
@@ -352,25 +352,26 @@ Roughy_2_sum_L <- Roughy_2 %>%
   mutate(F_Lgt =round(F,2), M_Lgt =round(M,2)) %>% 
   select(-F,-M)
   
-                     
-Roughy_2_sum_W <- Roughy_2 %>% 
-  dplyr::group_by(Ground,Shot,sex) %>% 
-  dplyr::summarise(avgW = mean(Wgt_derived)) %>%
-  spread(sex,avgW) %>% 
-  mutate(F_Dw =round(F,2), M_DW =round(M,2)) %>% 
-  ungroup() %>% 
-  select(-F,-M,-Ground,-Shot)
-                  
-Roughy_2_sum_WFM <- Roughy_2 %>% 
-  dplyr::group_by(Ground,Shot,sex) %>% 
-  dplyr::summarise(avgWFM = mean(Wgt_derived_MF)) %>%
-  spread(sex,avgWFM) %>% 
-  mutate(F_wFM =round(F,2), M_wFM =round(M,2)) %>% 
-  ungroup() %>% 
-  select(-F,-M,-Ground,-Shot)
-                   
-                   #avgwgt = mean(Wgt_derived),avgwgtMF = mean(Wgt_derived_MF)) 
-shotdata_LWW <- bind_cols(Roughy_2_sum_L,Roughy_2_sum_W,Roughy_2_sum_WFM)
+# check check this the input data "Wgt_derived" must have been generated down below - i have moved this code around for ease of reading for Paul Burch - but made a mistake in 
+                    
+# Roughy_2_sum_W <- Roughy_2 %>% 
+#   dplyr::group_by(Ground,Shot,sex) %>% 
+#   dplyr::summarise(avgW = mean(Wgt_derived)) %>%
+#   spread(sex,avgW) %>% 
+#   mutate(F_Dw =round(F,2), M_DW =round(M,2)) %>% 
+#   ungroup() %>% 
+#   select(-F,-M,-Ground,-Shot)
+#                   
+# Roughy_2_sum_WFM <- Roughy_2 %>% 
+#   dplyr::group_by(Ground,Shot,sex) %>% 
+#   dplyr::summarise(avgWFM = mean(Wgt_derived_MF)) %>%
+#   spread(sex,avgWFM) %>% 
+#   mutate(F_wFM =round(F,2), M_wFM =round(M,2)) %>% 
+#   ungroup() %>% 
+#   select(-F,-M,-Ground,-Shot)
+#                    
+#                    #avgwgt = mean(Wgt_derived),avgwgtMF = mean(Wgt_derived_MF)) 
+# shotdata_LWW <- bind_cols(Roughy_2_sum_L,Roughy_2_sum_W,Roughy_2_sum_WFM)
   
   # t2.4 <- bind_rows(Roughy_2_sum, TSH, TSP,TSHSP) %>%   # put all together for totals
   # dplyr::rename("Shot Weight (kg)" = ShotWeight_kg, "Total Nos Fish" = Total)
@@ -389,14 +390,14 @@ OR_LF <- Roughy_2 %>% # This is the ONE
 
 f2.2 <- ggplot(OR_LF, aes(Length, prop, fill = sex)) +
   geom_col(position = "identity", alpha = 0.6) +
-  scale_x_continuous(breaks = seq(28,46,2),limits = c(28,46))+
+  scale_x_continuous(breaks = seq(28,48,2),limits = c(28,48))+
   facet_wrap(~Ground)+
    theme_bw()+
   ylab("proportion")+
   xlab("Length (cm)")+
   theme(legend.position = "bottom")
 plot(f2.2)
-ggsave(filename = "Figures/LF2024.emf")
+ggsave(filename = "Figures/LF2024.emf",device = emf)
 ggsave(filename = "Figures/LF2024.jpg")
 ```
 
