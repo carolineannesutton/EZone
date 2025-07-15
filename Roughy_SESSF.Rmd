@@ -144,7 +144,7 @@ ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
 # 
 # plot(LF_sex)
 # ggsave(filename = "Data/Roughy_SESSF/LF_sex.emf",device = emf)
-#ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
+# #ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
 ```
 There does not appear to be a relationshp b/w indeterminate sex and length. Will inlcude F and M from now on for zone comparisons 
 
@@ -166,37 +166,38 @@ unique(WORDAC_1$ZONE)
 
 ```
 
-# ```{r}
-# LF_Tally <- WORDAC_1 %>% 
-#   filter(Sex =="F" |Sex =="M") %>% 
-#   group_by(ZONE,Sex) %>% 
-#   add_tally() %>% 
-#   group_by(ZONE,Sex,Lgt_cm) %>% 
-#   dplyr::summarise(prop = n() / n[1])
+```{r}
+# LF_Tally <- WORDAC_1 %>%
+#    filter(Sex =="F" |Sex =="M") %>%
+#    group_by(ZONE,Sex) %>%
+#    add_tally() %>%
+# group_by(ZONE,Sex,Lgt_cm) %>%
+#    dplyr::summarise(prop = n() / n[1])
 # 
-# LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = Sex)) +
-#   geom_col(position = "identity", alpha = 0.6) +
-#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-#   scale_y_continuous(breaks = seq(0,0.15,0.1),limits = c(0,0.15),
-# sec.axis = dup_axis(name = NULL))+
-#   facet_wrap(~ paste(ZONE), ncol = 4)+
-#    theme_bw(base_size = 8)+
-#   ylab("proportion")+
-#   xlab("Length (cm)")+
-#   theme(legend.position = "bottom",
-#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
-#   axis.title = element_text(size = 8),
-#   axis.text = element_text(size = 7),
-#   legend.text = element_text(size = 7),
-#   legend.title = element_text(size = 7),
-#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
-#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
-#   )
+#  LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = Sex)) +
+#    geom_col(position = "identity", alpha = 0.6) +
+#    scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+#    scale_y_continuous(breaks = seq(0,0.15,0.1),limits = c(0,0.15),
+#  sec.axis = dup_axis(name = NULL))+
+#    facet_wrap(~ paste(ZONE), ncol = 4)+
+#     theme_bw(base_size = 8)+
+#    ylab("proportion")+
+#    xlab("Length (cm)")+
+#    theme(legend.position = "bottom",
+#    strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+#    axis.title = element_text(size = 8),
+#    axis.text = element_text(size = 7),
+#    legend.text = element_text(size = 7),
+#    legend.title = element_text(size = 7),
+#    legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+#    legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
+#    )
 # 
-# plot(LF)
-# ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDL.emf",device = emf)
-# #ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
+#  plot(LF)
+#  ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDL.emf",device = emf)
+#  ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
 ```
+
 
 ```{r}
 ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
@@ -223,35 +224,95 @@ distinct(WORDAC_1,Lgt_cm)
 
 ## Length frequencies for each Zone by month
 
+Northern
+
 ```{r}
-LF_Tally_Northern <- WORDAC_1 %>% 
-  filter(Sex =="F" |Sex =="M") %>% 
-  filter(ZONE =="Northern") %>% 
-  group_by(ZONE,year,MonthName,Sex) %>% 
-  add_tally() %>% 
-  group_by(ZONE, year, MonthName, Sex,Lgt_cm) %>% 
-  dplyr::summarise(prop = n() / n[1])
+Northern <- WORDAC_1 %>% 
+  filter(ZONE == "Northern")
 
-LF_Northern <- ggplot(LF_Tally_Northern, aes(Lgt_cm, prop, fill = Sex)) +
-  geom_col(position = "identity", alpha = 0.6) +
-  scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  scale_y_continuous(breaks = seq(0,0.4,0.1),limits = c(0,0.4),
-sec.axis = dup_axis(name = NULL))+
-  facet_wrap(~ paste(year, MonthName), ncol = 4)+
-   theme_bw(base_size = 8)+
-  ylab("proportion")+
-  xlab("Length (cm)")+
-  theme(legend.position = "bottom",
-  strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
-  axis.title = element_text(size = 8),
-  axis.text = element_text(size = 7),
-  legend.text = element_text(size = 7),
-  legend.title = element_text(size = 7),
-  legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
-  legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
-  )
+ggplot(Northern, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  xlab("Northern Zone SL length (cm)") +
+  ylab("Count") +
+  facet_wrap(~MonthName)+
+   theme_minimal()
+```
 
-plot(LF_Northern)
-ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDLz_Northern.emf",device = emf)
+Central
+
+```{r}
+Central <- WORDAC_1 %>% 
+  filter(ZONE == "Central")
+
+ggplot(Central, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  xlab("Central Zone SL length (cm)") +
+  ylab("Count") +
+  facet_wrap(~MonthName)+
+   theme_minimal()
+```
+
+Southern
+
+```{r}
+Southern <- WORDAC_1 %>% 
+  filter(ZONE == "Southern")
+
+ggplot(Southern, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  xlab("Southern Zone SL length (cm)") +
+  ylab("Count") +
+  facet_wrap(~MonthName)+
+   theme_minimal()
+```
+
+Zone = NA
+
+```{r}
+unknown <- WORDAC_1 %>% 
+  filter(is.na(ZONE))
+
+ggplot(unknown, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  xlab("unknown Zone SL length (cm)") +
+  ylab("Count") +
+  facet_wrap(~MonthName)+
+   theme_minimal()
+```
+
+```{r}
+# LF_Tally_Northern <- WORDAC_1 %>% 
+#   filter(Sex =="F" |Sex =="M") %>% 
+#   filter(ZONE =="Northern") %>% 
+#   group_by(ZONE,year,MonthName,Sex) %>% 
+#   add_tally() %>% 
+#   group_by(ZONE, year, MonthName, Sex,Lgt_cm) %>% 
+#   dplyr::summarise(prop = n() / n[1])
+# 
+# LF_Northern <- ggplot(LF_Tally_Northern, aes(Lgt_cm, prop, fill = Sex)) +
+#   geom_col(position = "identity", alpha = 0.6) +
+#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+#   scale_y_continuous(breaks = seq(0,0.4,0.1),limits = c(0,0.4),
+# sec.axis = dup_axis(name = NULL))+
+#   facet_wrap(~ paste(year, MonthName), ncol = 4)+
+#    theme_bw(base_size = 8)+
+#   ylab("proportion")+
+#   xlab("Length (cm)")+
+#   theme(legend.position = "bottom",
+#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+#   axis.title = element_text(size = 8),
+#   axis.text = element_text(size = 7),
+#   legend.text = element_text(size = 7),
+#   legend.title = element_text(size = 7),
+#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
+#   )
+# 
+# plot(LF_Northern)
+# ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDLz_Northern.emf",device = emf)
 
 ```
