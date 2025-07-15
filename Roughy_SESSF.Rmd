@@ -5,8 +5,9 @@ date: "2025-07-14"
 output: html_document
 ---
 
-# Set up
+# WORDAC Data - Length Frequencies
 
+## Set up
 libraries required
 
 ```{r setup, include=FALSE}
@@ -59,6 +60,9 @@ explore the data
 WORDAC %>% 
   dplyr::group_by(ZONE,year,month) %>% 
   dplyr::summarise(n = n())
+
+WORDAC %>% distinct(SEX)
+WORDAC %>% distinct(ZONE)
 ```
 
 Length is character
@@ -67,25 +71,173 @@ Length is character
 WORDAC_1 <-WORDAC %>% 
   mutate(Lgt_cm = as.numeric(LENGTH_CM)) %>% 
   drop_na(Lgt_cm)
+
+WORDAC_1 %>% distinct(Sex)
+WORDAC_1 %>% distinct(ZONE)
+```
+Note that dropping (null) for length has also dropped the (null) for Sex
+
+
+
+change months to character - for nicer plots
+```{r}
+WORDAC_1 <- WORDAC_1 %>%
+  mutate(MonthName = factor(month.abb[as.numeric(month)], levels = month.abb))
+
+#check
+WORDAC_1 %>% 
+  dplyr::group_by(Sex,month,MonthName) %>% 
+  dplyr::summarise(n = n())
+```
+
+
+
+Change column SEX to Sex
+```{r}
+# Renaming columns using dplyr
+WORDAC_1 <- WORDAC_1 %>%
+  dplyr::rename(Sex = SEX)
+```
+
+### Length frequency by Sex only
+
+```{r}
+ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  xlab("length (cm)") +
+  ylab("Count") +
+   theme_minimal()
   
 ```
 
-Length frequencies for groups
+```{r}
+# LF_Tally_Sex <- WORDAC_1 %>% 
+#   #filter(Sex =="F" |Sex =="M") %>% 
+#   group_by(Sex) %>% 
+#   add_tally() %>% 
+#   group_by(Sex, Lgt_cm) %>% 
+#   dplyr::summarise(prop = n() / n[1])
+# 
+# 
+# LF_sex <- ggplot(LF_Tally_Sex, aes(Lgt_cm, prop, fill = Sex)) +
+#   geom_col(position = "identity", alpha = 0.6) +
+#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+#   scale_y_continuous(breaks = seq(0,0.1,0.1),limits = c(0,0.1),
+# sec.axis = dup_axis(name = NULL))+
+#   # scale_fill_manual(values = c("F" = "red",  # pink for Female
+#   #                               "M" = "lightblue",  # blue for Male
+#   #                               "Indeterminate" = "brown"))+
+#   #facet_wrap(~ paste(ZONE), ncol = 4)+
+#   facet_wrap(~ Sex, ncol = 1) +  # <--- one plot per Sex
+#    theme_bw(base_size = 8)+
+#   ylab("proportion")+
+#   xlab("Length (cm)")+
+#   theme(legend.position = "bottom",
+#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+#   axis.title = element_text(size = 8),
+#   axis.text = element_text(size = 7),
+#   legend.text = element_text(size = 7),
+#   legend.title = element_text(size = 7),
+#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
+#   )
+# 
+# plot(LF_sex)
+# ggsave(filename = "Data/Roughy_SESSF/LF_sex.emf",device = emf)
+#ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
+```
+There does not appear to be a relationshp b/w indeterminate sex and length. Will inlcude F and M from now on for zone comparisons 
+
+
+## Length frequencies by zones
+
+
+combine the null and 0 zones
+```{r}
+WORDAC_1 <- WORDAC_1 %>%
+  mutate(ZONE = ifelse(ZONE == 0, NA, ZONE)) %>% 
+  mutate(ZONE = ifelse(ZONE == "null", NA, ZONE)) # didn't work
+
+WORDAC_1 <- WORDAC_1 %>% mutate(ZONE = ifelse(ZONE == "(null)", NA, ZONE)) # worked
+
+
+unique(WORDAC_1$ZONE)
+
+
+```
+
+# ```{r}
+# LF_Tally <- WORDAC_1 %>% 
+#   filter(Sex =="F" |Sex =="M") %>% 
+#   group_by(ZONE,Sex) %>% 
+#   add_tally() %>% 
+#   group_by(ZONE,Sex,Lgt_cm) %>% 
+#   dplyr::summarise(prop = n() / n[1])
+# 
+# LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = Sex)) +
+#   geom_col(position = "identity", alpha = 0.6) +
+#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+#   scale_y_continuous(breaks = seq(0,0.15,0.1),limits = c(0,0.15),
+# sec.axis = dup_axis(name = NULL))+
+#   facet_wrap(~ paste(ZONE), ncol = 4)+
+#    theme_bw(base_size = 8)+
+#   ylab("proportion")+
+#   xlab("Length (cm)")+
+#   theme(legend.position = "bottom",
+#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+#   axis.title = element_text(size = 8),
+#   axis.text = element_text(size = 7),
+#   legend.text = element_text(size = 7),
+#   legend.title = element_text(size = 7),
+#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
+#   )
+# 
+# plot(LF)
+# ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDL.emf",device = emf)
+# #ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
+```
 
 ```{r}
+ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
+  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
+  xlab("length (cm)") +
+  ylab("Count") +
+  facet_wrap(~ZONE)+
+   theme_minimal()
+```
 
-LF_Tally <- WORDAC_1 %>% 
-  filter(SEX =="F" |SEX =="M") %>% 
-  group_by(year,ZONE,SEX) %>% 
+filter for seperate data sets
+
+```{r}
+# sex = unknown
+indeterminate_sex <- WORDAC_1 %>% 
+  filter(Sex == "Indeterminate")
+
+#check
+distinct(WORDAC_1,Sex)
+distinct(WORDAC_1,ZONE)
+distinct(WORDAC_1,Lgt_cm)
+```
+
+
+## Length frequencies for each Zone by month
+
+```{r}
+LF_Tally_Northern <- WORDAC_1 %>% 
+  filter(Sex =="F" |Sex =="M") %>% 
+  filter(ZONE =="Northern") %>% 
+  group_by(ZONE,year,MonthName,Sex) %>% 
   add_tally() %>% 
-  group_by(ZONE, SEX,year, Lgt_cm) %>% 
+  group_by(ZONE, year, MonthName, Sex,Lgt_cm) %>% 
   dplyr::summarise(prop = n() / n[1])
 
-LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = SEX)) +
+LF_Northern <- ggplot(LF_Tally_Northern, aes(Lgt_cm, prop, fill = Sex)) +
   geom_col(position = "identity", alpha = 0.6) +
   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  scale_y_continuous(breaks = seq(0,0.2,0.1),limits = c(0,0.2))+
-  facet_wrap(~ paste(ZONE, year), ncol = 4)+
+  scale_y_continuous(breaks = seq(0,0.4,0.1),limits = c(0,0.4),
+sec.axis = dup_axis(name = NULL))+
+  facet_wrap(~ paste(year, MonthName), ncol = 4)+
    theme_bw(base_size = 8)+
   ylab("proportion")+
   xlab("Length (cm)")+
@@ -94,32 +246,12 @@ LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = SEX)) +
   axis.title = element_text(size = 8),
   axis.text = element_text(size = 7),
   legend.text = element_text(size = 7),
-  legend.title = element_text(size = 8)
+  legend.title = element_text(size = 7),
+  legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+  legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
   )
-plot(LF)
-ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDL.emf",device = emf)
-#ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
 
+plot(LF_Northern)
+ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDLz_Northern.emf",device = emf)
 
-
-```
-
-
-
-
-
-
-```{r}
-WORDAC_1 <- WORDAC %>% 
-  filter(SEX == "M" | SEX == "F")
-
-indeterminate_sex <- WORDAC %>% 
-  filter(SEX == "Indeterminate")
-
-
-#check
-distinct(WORDAC_1,SEX)
-distinct(WORDAC_1,ZONE)
-distinct(WORDAC_1,LENGTH_CM)
-  
 ```
