@@ -1,0 +1,125 @@
+---
+title: "RoughyData_exploration"
+author: "sutton"
+date: "2025-07-14"
+output: html_document
+---
+
+# Set up
+
+libraries required
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(Rmisc)
+library(dplyr)
+library(tidyr)
+library(kableExtra)
+library(knitr)
+library(cowplot)
+library(gridExtra)
+library(lubridate)
+library(devEMF)
+```
+
+load data
+
+```{r}
+### Biological Index
+WORDAC <- read_csv("Data/Roughy_SESSF/WORDAC_2024in2025_extract_biological.csv")
+```
+
+explore data
+
+```{r}
+
+distinct(WORDAC,SEX)
+
+
+
+```
+separate date
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+- had trouble with dates - lubridate can't cope with two date formates - the last 52 lines had hh:mm in the date. This was problematic. I went back to excel to make all the formats the same b/c it couldn't make it work in R.
+
+```{r}
+
+# WORDAC <- WORDAC %>% 
+#   # lubridate - turns character date to date-date
+#   mutate(x = dmy(SHOT_DATE)) %>% 
+#   # splits the date into year month and day
+#   mutate_at(vars(x), funs(year, month, day))
+
+#gsub(x=v,pattern=" 0:00:00",replacement="",fixed=T)
+```
+explore the data
+
+```{r}
+WORDAC %>% 
+  dplyr::group_by(ZONE,year,month) %>% 
+  dplyr::summarise(n = n())
+```
+
+Length is character
+
+```{r}
+WORDAC_1 <-WORDAC %>% 
+  mutate(Lgt_cm = as.numeric(LENGTH_CM)) %>% 
+  drop_na(Lgt_cm)
+  
+```
+
+Length frequencies for groups
+
+```{r}
+
+LF_Tally <- WORDAC_1 %>% 
+  filter(SEX =="F" |SEX =="M") %>% 
+  group_by(year,ZONE,SEX) %>% 
+  add_tally() %>% 
+  group_by(ZONE, SEX,year, Lgt_cm) %>% 
+  dplyr::summarise(prop = n() / n[1])
+
+LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = SEX)) +
+  geom_col(position = "identity", alpha = 0.6) +
+  scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  scale_y_continuous(breaks = seq(0,0.2,0.1),limits = c(0,0.2))+
+  facet_wrap(~ paste(ZONE, year), ncol = 4)+
+   theme_bw(base_size = 8)+
+  ylab("proportion")+
+  xlab("Length (cm)")+
+  theme(legend.position = "bottom",
+  strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+  axis.title = element_text(size = 8),
+  axis.text = element_text(size = 7),
+  legend.text = element_text(size = 7),
+  legend.title = element_text(size = 8)
+  )
+plot(LF)
+ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDL.emf",device = emf)
+#ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
+
+
+
+```
+
+
+
+
+
+
+```{r}
+WORDAC_1 <- WORDAC %>% 
+  filter(SEX == "M" | SEX == "F")
+
+indeterminate_sex <- WORDAC %>% 
+  filter(SEX == "Indeterminate")
+
+
+#check
+distinct(WORDAC_1,SEX)
+distinct(WORDAC_1,ZONE)
+distinct(WORDAC_1,LENGTH_CM)
+  
+```
