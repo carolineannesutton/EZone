@@ -13,36 +13,32 @@ libraries required
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(ggplot2)
-library(Rmisc)
 library(dplyr)
-library(tidyr)
 library(kableExtra)
 library(knitr)
 library(cowplot)
 library(gridExtra)
 library(lubridate)
 library(devEMF)
+library(broom)
+library(maps)
+library(mapdata)
+library(mapproj)
 ```
+
 
 load data
 
 ```{r}
 ### Biological Index
-WORDAC <- read_csv("Data/Roughy_SESSF/WORDAC_2024in2025_extract_biological.csv")
+WORDAC <- read_csv("Data/Roughy_SESSF/WORDAC_2024in2025_extract_biological.csv",
+                   na = c("", "(null)"),
+                  col_types = list(LENGTH_CM = col_double()))
 ```
 
-explore data
-
-```{r}
-
-distinct(WORDAC,SEX)
-
-
-
-```
 separate date
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-- had trouble with dates - lubridate can't cope with two date formates - the last 52 lines had hh:mm in the date. This was problematic. I went back to excel to make all the formats the same b/c it couldn't make it work in R.
+- had trouble with dates - lubridate can't cope with two date formats - the last 52 lines had hh:mm in the date. This was problematic. I went back to excel to make all the formats the same b/c it couldn't make it work in R.
 
 ```{r}
 
@@ -54,6 +50,7 @@ separate date
 
 #gsub(x=v,pattern=" 0:00:00",replacement="",fixed=T)
 ```
+
 explore the data
 
 ```{r}
@@ -61,96 +58,197 @@ WORDAC %>%
   dplyr::group_by(ZONE,year,month) %>% 
   dplyr::summarise(n = n())
 
-WORDAC %>% distinct(SEX)
-WORDAC %>% distinct(ZONE)
+unique(WORDAC$SEX)
+unique(WORDAC$ZONE)
+unique(WORDAC$SAMPLING_LOCATION)
+unique(WORDAC$SEASON)
+unique(WORDAC$STRATUM)
+
 ```
 
-Length is character
+## Manipulate data
 
+
+Drop NA in length column
 ```{r}
 WORDAC_1 <-WORDAC %>% 
-  mutate(Lgt_cm = as.numeric(LENGTH_CM)) %>% 
-  drop_na(Lgt_cm)
+  drop_na(LENGTH_CM)
 
-WORDAC_1 %>% distinct(Sex)
-WORDAC_1 %>% distinct(ZONE)
+unique(WORDAC_1$LENGTH_CM)
 ```
 Note that dropping (null) for length has also dropped the (null) for Sex
 
 
+ZONE colunm - combine the null and 0 to be NA
+- makes graphing easier
+```{r}
 
-change months to character - for nicer plots
+ 
+WORDAC_1 <- WORDAC_1 %>%  
+  mutate(ZONE = ifelse(ZONE == 0, NA, ZONE)) %>% 
+  mutate(ZONE = ifelse(ZONE == "(null)", NA, ZONE)) 
+
+# check
+unique(WORDAC_1$ZONE)
+```
+
+
+change months to character - in order to read the months 
 ```{r}
 WORDAC_1 <- WORDAC_1 %>%
   mutate(MonthName = factor(month.abb[as.numeric(month)], levels = month.abb))
 
 #check
 WORDAC_1 %>% 
-  dplyr::group_by(Sex,month,MonthName) %>% 
+  dplyr::group_by(SEX,month,MonthName) %>% 
   dplyr::summarise(n = n())
 ```
+## Plot data on a map
 
-
-
-Change column SEX to Sex
+code from chatgpt
 ```{r}
-# Renaming columns using dplyr
-WORDAC_1 <- WORDAC_1 %>%
-  dplyr::rename(Sex = SEX)
+# Get world map data
+data("worldHires", package = "mapdata")
+world_map <- map_data("worldHires")
+
+# Your cleaned data
+data_clean <- WORDAC_1 %>%
+  filter(!is.na(LATITUDE), !is.na(LONGITUDE))
+
+# Plot sample locations
+p <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group),
+               fill = "gray95", color = "gray60") +
+  geom_point(data = data_clean, aes(x = LONGITUDE, y = LATITUDE),
+             color = "blue", size = 2, alpha = 0.7) +
+  coord_map(xlim = c(110, 160), ylim = c(-45, -5)) +
+  labs(title = "Sample Locations", x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+print(p)
 ```
 
-### Length frequency by Sex only
+crop and colour code
+```{r}
+
+#Example data format
+
+colnames(WORDAC)
+
+aus_map <- map_data("world", region = "Australia")
+padding <- 0.5  # degrees of lat/lon padding
+
+lon_min <- min(WORDAC_1$LONGITUDE, na.rm = TRUE) - padding
+lon_max <- max(WORDAC_1$LONGITUDE, na.rm = TRUE) + padding
+lat_min <- min(WORDAC_1$LATITUDE, na.rm = TRUE) - padding
+lat_max <- max(WORDAC_1$LATITUDE, na.rm = TRUE) + padding
+
+# the map
+ggplot() +
+  geom_polygon(data = aus_map, aes(x = long, y = lat, group = group),
+               fill = "gray90", color = "black") +
+  geom_point(data = WORDAC_1, aes(x = LONGITUDE, y = LATITUDE, color = ZONE),
+             size = 2, alpha = 0.8) +
+  coord_fixed(1.3, 
+              xlim = c(lon_min, lon_max), 
+              ylim = c(lat_min, lat_max)) +
+  theme_minimal() +
+  labs(title = "Sample Locations by Zone",
+       x = "Longitude", y = "Latitude",
+       color = "Zone") +
+  theme(legend.position = "bottom")
+```
+
+## Plotting Length data
+
+### Length Histograms by Sex
+Females as expected are on average larger than males
+-histograms suggest different cohorts - possibly difference in zones
+- stats show that indeterminate fish are on averages smaller than F fish (-3.2 cm) and M fish (-1.9). 
 
 ```{r}
-ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
-  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
-  xlab("length (cm)") +
+summarySE(WORDAC_1, measurevar = "LENGTH_CM", groupvars = c("SEX")) 
+
+WORDAC_1 %>%
+  dplyr::group_by(SEX) %>%
+  dplyr::summarise(meanSL = mean(LENGTH_CM, na.rm = TRUE))
+
+
+
+
+```
+
+```{r}
+WORDAC_1$SEX <- factor(WORDAC_1$SEX, levels = c("F", "M", "Indeterminate"))
+
+# Plot
+ggplot(WORDAC_1, aes(x = LENGTH_CM)) +
+  geom_histogram(binwidth = 1, fill = "#69b3a2", color = "white") +
+  facet_grid(SEX ~ .) +  # vertical stacking by Sex
+  xlab("Standard Length (cm)") +
   ylab("Count") +
-   theme_minimal()
-  
+  theme_minimal(base_size = 10) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  )
 ```
 
+
 ```{r}
-# LF_Tally_Sex <- WORDAC_1 %>% 
-#   #filter(Sex =="F" |Sex =="M") %>% 
-#   group_by(Sex) %>% 
-#   add_tally() %>% 
-#   group_by(Sex, Lgt_cm) %>% 
-#   dplyr::summarise(prop = n() / n[1])
+LF_Tally_Sex <- WORDAC_1 %>%
+  #filter(Sex =="F" |Sex =="M") %>%
+  group_by(SEX) %>%
+  add_tally() %>%
+  group_by(SEX, LENGTH_CM) %>%
+  dplyr::summarise(prop = n() / n[1])
+
+
+LF_sex <- ggplot(LF_Tally_Sex, aes(LENGTH_CM, prop, fill = SEX)) +
+  geom_col(position = "identity", alpha = 0.6) +
+  scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
+  scale_y_continuous(breaks = seq(0,0.1,0.1),limits = c(0,0.1),
+sec.axis = dup_axis(name = NULL))+
+  facet_wrap(~ SEX, ncol = 1) +  # <--- one plot per Sex
+   theme_bw(base_size = 8)+
+  ylab("proportion")+
+  xlab("Length (cm)")+
+  theme(legend.position = "bottom",
+  strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
+  axis.title = element_text(size = 8),
+  axis.text = element_text(size = 7),
+  legend.text = element_text(size = 7),
+  legend.title = element_text(size = 7),
+  legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
+  legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
+  )
 # 
-# 
-# LF_sex <- ggplot(LF_Tally_Sex, aes(Lgt_cm, prop, fill = Sex)) +
-#   geom_col(position = "identity", alpha = 0.6) +
-#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-#   scale_y_continuous(breaks = seq(0,0.1,0.1),limits = c(0,0.1),
-# sec.axis = dup_axis(name = NULL))+
-#   # scale_fill_manual(values = c("F" = "red",  # pink for Female
-#   #                               "M" = "lightblue",  # blue for Male
-#   #                               "Indeterminate" = "brown"))+
-#   #facet_wrap(~ paste(ZONE), ncol = 4)+
-#   facet_wrap(~ Sex, ncol = 1) +  # <--- one plot per Sex
-#    theme_bw(base_size = 8)+
-#   ylab("proportion")+
-#   xlab("Length (cm)")+
-#   theme(legend.position = "bottom",
-#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
-#   axis.title = element_text(size = 8),
-#   axis.text = element_text(size = 7),
-#   legend.text = element_text(size = 7),
-#   legend.title = element_text(size = 7),
-#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
-#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
-#   )
-# 
-# plot(LF_sex)
+plot(LF_sex)
 # ggsave(filename = "Data/Roughy_SESSF/LF_sex.emf",device = emf)
 # #ggsave(filename = "Data/Roughy_SESSF/LF_RoughyDL.jpg")
 ```
-There does not appear to be a relationshp b/w indeterminate sex and length. Will inlcude F and M from now on for zone comparisons 
+Thought perhaps the small fish may not have been easy to sex and that 'indeterminate' fish may have been obviously smaller - not super obvious - as many large fish are also classed as indeterminate.
 
+
+Check for statistical differneces in sex
+```{r}
+anova_model <- aov(LENGTH_CM ~ SEX, data = WORDAC_1)
+summary(anova_model)
+TukeyHSD(anova_model)
+```
 
 ## Length frequencies by zones
 
+ANOVA and Tukey test
+ - Southern fish are MUCH smaller than BOTH Northern and Central fish 
+    *(-6.4cm and -5.4 cm respectively)
+ - Northern fish are larger than Central fish 
+    *(~1cm)
+ - In Southern Zone M and F fish are not significantly different 
+      *(Southern:M-Southern:F -0.7583570 -1.6015240  0.0848100 0.1064615)
+
+Need to break it down by years within each ZONE to see cohorts
 
 combine the null and 0 zones
 ```{r}
@@ -199,8 +297,24 @@ unique(WORDAC_1$ZONE)
 ```
 
 
+average SL by ZONE 
 ```{r}
-ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
+WORDAC_1 %>%
+  dplyr::group_by(SEX,ZONE) %>%
+  dplyr::summarise(meanSL = mean(LENGTH_CM, na.rm = TRUE))
+
+```
+
+anova
+```{r}
+Anova_Zone <- aov(LENGTH_CM ~ ZONE * SEX, data = WORDAC_1 %>% filter(SEX %in% c("F", "M")))
+summary(Anova_Zone)
+TukeyHSD(Anova_Zone)
+```
+
+LF by Zone and sex 
+```{r}
+ggplot(WORDAC_1, aes(x = LENGTH_CM, fill = SEX)) +
   geom_histogram(binwidth = 1) +   # adjust binwidth as needed
   xlab("length (cm)") +
   ylab("Count") +
@@ -208,111 +322,244 @@ ggplot(WORDAC_1, aes(x = Lgt_cm, fill = Sex)) +
    theme_minimal()
 ```
 
-filter for seperate data sets
+
+## Average Standard Lenght for each zone by year
 
 ```{r}
-# sex = unknown
-indeterminate_sex <- WORDAC_1 %>% 
-  filter(Sex == "Indeterminate")
+WORDAC_1 %>%
+  filter(SEX %in% c("F", "M")) %>%
+  dplyr::group_by(ZONE,year, SEX) %>%
+  dplyr::summarise(mean_SL = mean(LENGTH_CM, na.rm = TRUE),
+            se = sd(LENGTH_CM, na.rm = TRUE) / sqrt(n())) %>%
+  ggplot(aes(x = factor(year), y = mean_SL, color = SEX, group = SEX)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = mean_SL - se, ymax = mean_SL + se), width = 0.2) +
+  xlab("Year") + ylab("Mean Standard Length (cm)") +
+  theme_minimal() +
+  labs(title = "Yearly Standard Length by Sex")+
+  facet_wrap(~ZONE)
 
-#check
-distinct(WORDAC_1,Sex)
-distinct(WORDAC_1,ZONE)
-distinct(WORDAC_1,Lgt_cm)
+WORDAC_1 %>%
+  filter(SEX %in% c("F", "M")) %>%
+  dplyr::group_by(ZONE, year, SEX) %>%
+  dplyr::summarise(
+    mean_SL = mean(LENGTH_CM, na.rm = TRUE),
+    se = sd(LENGTH_CM, na.rm = TRUE) / sqrt(n()),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = factor(year), y = mean_SL, color = SEX, group = SEX)) +
+  geom_line(size = 1) +
+  geom_point(size = 2.5) +
+  geom_errorbar(
+    aes(ymin = mean_SL - se, ymax = mean_SL + se),
+    width = 0.2,
+    size = 0.4
+  ) +
+  facet_wrap(~ ZONE, scales = "free_y") +
+  scale_color_brewer(palette = "Set1") +
+  xlab("Year") +
+  ylab("Mean Standard Length (cm)") +
+  labs(
+    title = "Yearly Mean Standard Length by Sex and Zone",
+    color = "Sex"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_text(size = 12, face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
 ```
 
 
-## Length frequencies for each Zone by month
+## Length frequencies for each ZONE
 
-Northern
+### Northern
+- Histogram - two peaks obvious for F in years with high sampling
+      *2024,2022, 2021,2020 - note that for 2021 there could be ~4 peaks?
+      * not as obvious for M fish
+      
 
 ```{r}
-Northern <- WORDAC_1 %>% 
-  filter(ZONE == "Northern")
+# Northern <- WORDAC_1 %>% 
+#   filter(ZONE == "Northern")
 
-ggplot(Northern, aes(x = Lgt_cm, fill = Sex)) +
-  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
-  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  xlab("Northern Zone SL length (cm)") +
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Northern"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Northern Zone Standard Length (cm)") +
   ylab("Count") +
-  facet_wrap(~MonthName)+
-   theme_minimal()
+  facet_grid(rows = vars(year), cols = vars(SEX), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
 ```
 
-Central
+
+### Central
+- Histogram - up to 4 peaks 
 
 ```{r}
-Central <- WORDAC_1 %>% 
-  filter(ZONE == "Central")
-
-ggplot(Central, aes(x = Lgt_cm, fill = Sex)) +
-  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
-  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  xlab("Central Zone SL length (cm)") +
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Central"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Central Zone Standard Length (cm)") +
   ylab("Count") +
-  facet_wrap(~MonthName)+
-   theme_minimal()
+   facet_grid(rows = vars(year), cols = vars(SEX), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
 ```
 
-Southern
+
+### Southern
+
 
 ```{r}
-Southern <- WORDAC_1 %>% 
-  filter(ZONE == "Southern")
-
-ggplot(Southern, aes(x = Lgt_cm, fill = Sex)) +
-  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
-  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  xlab("Southern Zone SL length (cm)") +
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Southern"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Southern Zone Standard Length (cm)") +
   ylab("Count") +
-  facet_wrap(~MonthName)+
-   theme_minimal()
+  facet_grid(rows = vars(year), cols = vars(SEX), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
 ```
+## Does looking by month make any difference?
 
-Zone = NA
-
+### Northern
 ```{r}
-unknown <- WORDAC_1 %>% 
-  filter(is.na(ZONE))
-
-ggplot(unknown, aes(x = Lgt_cm, fill = Sex)) +
-  geom_histogram(binwidth = 1) +   # adjust binwidth as needed
-  #scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-  xlab("unknown Zone SL length (cm)") +
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Northern"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Northern Zone Standard Length (cm)") +
   ylab("Count") +
-  facet_wrap(~MonthName)+
-   theme_minimal()
+  facet_grid(rows = vars(MonthName), cols = vars(year), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
 ```
 
+### Central
 ```{r}
-# LF_Tally_Northern <- WORDAC_1 %>% 
-#   filter(Sex =="F" |Sex =="M") %>% 
-#   filter(ZONE =="Northern") %>% 
-#   group_by(ZONE,year,MonthName,Sex) %>% 
-#   add_tally() %>% 
-#   group_by(ZONE, year, MonthName, Sex,Lgt_cm) %>% 
-#   dplyr::summarise(prop = n() / n[1])
-# 
-# LF_Northern <- ggplot(LF_Tally_Northern, aes(Lgt_cm, prop, fill = Sex)) +
-#   geom_col(position = "identity", alpha = 0.6) +
-#   scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
-#   scale_y_continuous(breaks = seq(0,0.4,0.1),limits = c(0,0.4),
-# sec.axis = dup_axis(name = NULL))+
-#   facet_wrap(~ paste(year, MonthName), ncol = 4)+
-#    theme_bw(base_size = 8)+
-#   ylab("proportion")+
-#   xlab("Length (cm)")+
-#   theme(legend.position = "bottom",
-#   strip.text = element_text(size = 7, face = "plain"),  # <-- Thinner headings
-#   axis.title = element_text(size = 8),
-#   axis.text = element_text(size = 7),
-#   legend.text = element_text(size = 7),
-#   legend.title = element_text(size = 7),
-#   legend.key.height = unit(0.3, "cm"),  # Optional: reduce legend key height
-#   legend.key.width = unit(0.3, "cm")    # Optional: reduce legend key width
-#   )
-# 
-# plot(LF_Northern)
-# ggsave(filename = "Data/Roughy_SESSF/LF_RouhgyDLz_Northern.emf",device = emf)
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Central"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Central Zone Standard Length (cm)") +
+  ylab("Count") +
+  facet_grid(rows = vars(MonthName), cols = vars(year), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
+```
+
+
+### Southern
+```{r}
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Southern"),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  #geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Southern Zone Standard Length (cm)") +
+  ylab("Count") +
+  facet_grid(rows = vars(MonthName), cols = vars(year), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
+```
+
+
+
+exploring Stats looking -  month differences
+```{r}
+WORDAC_1$year <- as.factor(WORDAC_1$year)
+WORDAC_1$ZONE <- as.factor(WORDAC_1$ZONE)
+Anova_Zone <- aov(LENGTH_CM ~ year * MonthName * SEX, data = WORDAC_1 %>% filter(SEX %in% c("F", "M"),ZONE == "Northern"))
+summary(Anova_Zone)
+TukeyHSD(Anova_Zone)
+
+```
+
+
+stats with chatgpt
+```{r}
+results <- WORDAC_1 %>%
+  filter(SEX %in% c("F", "M")) %>%
+  dplyr::group_by(ZONE, year) %>%
+  dplyr::group_modify(~ {
+    data_sub <- .
+    
+    # Drop rows with missing values
+    data_sub <- data_sub %>%
+      filter(!is.na(LENGTH_CM), !is.na(MonthName), !is.na(SEX))
+    
+    # Drop unused factor levels
+    data_sub <- droplevels(data_sub)
+    
+    # Defensive: If no data left, skip
+    if (nrow(data_sub) == 0) {
+      message("No data: ", unique(.$ZONE), " ", unique(.$year))
+      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
+                    ZONE = unique(.$ZONE), year = unique(.$year)))
+    }
+
+    # Ensure factors are truly re-factored
+    data_sub$MonthName <- droplevels(as.factor(data_sub$MonthName))
+    data_sub$SEX <- droplevels(as.factor(data_sub$SEX))
+
+    if (nlevels(data_sub$MonthName) < 2) {
+      message("MonthName has < 2 levels: ", unique(data_sub$ZONE), " ", unique(data_sub$year))
+      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
+                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
+    }
+
+    if (nlevels(data_sub$SEX) < 2) {
+      message("SEX has < 2 levels: ", unique(data_sub$ZONE), " ", unique(data_sub$year))
+      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
+                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
+    }
+
+    # Fit the model safely
+    fit <- tryCatch(
+      aov(LENGTH_CM ~ MonthName + SEX, data = data_sub),
+      error = function(e) {
+        message("Model failed for ", unique(data_sub$ZONE), " ", unique(data_sub$year), ": ", e$message)
+        return(NULL)
+      }
+    )
+
+    if (is.null(fit)) {
+      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
+                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
+    }
+
+    # Extract result
+    broom::tidy(fit) %>%
+      filter(term == "MonthName") %>%
+      mutate(ZONE = unique(data_sub$ZONE), year = unique(data_sub$year))
+  }) %>%
+  ungroup() %>%
+  select(ZONE, year, term, statistic, p.value)
+
+print(results)
 
 ```
