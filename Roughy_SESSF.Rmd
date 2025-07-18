@@ -24,6 +24,8 @@ library(broom)
 library(maps)
 library(mapdata)
 library(mapproj)
+library(sf)
+library(tibble)
 ```
 
 
@@ -106,29 +108,8 @@ WORDAC_1 %>%
 ## Plot data on a map
 
 code from chatgpt
-```{r}
-# Get world map data
-data("worldHires", package = "mapdata")
-world_map <- map_data("worldHires")
+Map samples
 
-# Your cleaned data
-data_clean <- WORDAC_1 %>%
-  filter(!is.na(LATITUDE), !is.na(LONGITUDE))
-
-# Plot sample locations
-p <- ggplot() +
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group),
-               fill = "gray95", color = "gray60") +
-  geom_point(data = data_clean, aes(x = LONGITUDE, y = LATITUDE),
-             color = "blue", size = 2, alpha = 0.7) +
-  coord_map(xlim = c(110, 160), ylim = c(-45, -5)) +
-  labs(title = "Sample Locations", x = "Longitude", y = "Latitude") +
-  theme_minimal()
-
-print(p)
-```
-
-crop and colour code
 ```{r}
 
 #Example data format
@@ -158,6 +139,115 @@ ggplot() +
        color = "Zone") +
   theme(legend.position = "bottom")
 ```
+
+### checking zones from Lookups
+note that all the samples from the WORDAC data fit into ORO - Northern Zone!
+but some of the data don't fit correctly into the data zones.. need to rezone some of the data
+```{r}
+Zone_ORO <- zoneLU_2024_11 %>% 
+  filter(ZoneScheme == "ORO")
+
+```
+
+### checking the data fit into the WORDAC zones 
+code from chatgpt
+# Step 1: Define your custom zone polygons
+
+```{r}
+
+# Load required libraries
+library(sf)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+
+# Step 1: Create custom zone polygons
+zones_df <- tibble(
+  ZONE = c("Northern", "Central", "Southern"),
+  geometry = list(
+    st_polygon(list(rbind(  # Northern
+      c(138.0, -38.0),
+      c(140.0, -38.0),
+      c(140.0, -37.0),
+      c(138.0, -37.0),
+      c(138.0, -38.0)
+    ))),
+    st_polygon(list(rbind(  # Central
+      c(140.0, -40.0),
+      c(143.5, -40.0),
+      c(143.5, -38.0),
+      c(140.0, -38.0),
+      c(140.0, -40.0)
+    ))),
+    st_polygon(list(rbind(  # Southern
+      c(143.5, -43.5),
+      c(145.0, -43.5),
+      c(145.0, -40.5),
+      c(143.5, -40.5),
+      c(143.5, -43.5)
+    )))
+  )
+)
+
+zones_sf <- st_sf(zones_df, crs = 4326)
+
+# Step 2: Prepare sample data
+# Replace NA zones with "Unknown"
+WORDAC_1 <- WORDAC_1 %>%
+  mutate(ZONE = if_else(is.na(ZONE), "Unknown", ZONE))
+
+# Convert to sf object with coordinates
+samples_sf <- WORDAC_1 %>%
+  filter(!is.na(LONGITUDE), !is.na(LATITUDE)) %>%
+  mutate(ZONE_original = ZONE) %>%
+  st_as_sf(coords = c("LONGITUDE", "LATITUDE"), crs = 4326)
+
+# Step 3: Spatial join with zones
+samples_reassigned <- st_join(samples_sf, zones_sf, join = st_within)
+
+# Step 4: Rename to avoid duplicate names
+# First, check actual column names:
+zone_cols <- names(samples_reassigned)[grepl("ZONE", names(samples_reassigned))]
+print(zone_cols)
+
+# Then rename based on detected names:
+# (adjust these if your suffixes differ)
+samples_reassigned <- samples_reassigned %>%
+  rename(
+    ZONE_from_data = ZONE.x,         # Your original zone (before spatial join)
+    ZONE_reassigned = ZONE.y         # New zone from polygon
+  )
+
+# Step 5: Plot the reassigned sample points and zone polygons
+ggplot() +
+  geom_sf(data = zones_sf, aes(fill = ZONE), alpha = 0.3, color = "black") +
+  geom_sf(data = samples_reassigned, aes(color = ZONE_reassigned), size = 2, alpha = 0.8) +
+  theme_minimal() +
+  labs(
+    title = "Sample Locations with Reassigned Zones",
+    fill = "Zone Polygons",
+    color = "Reassigned Zone"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+### adding onto data
+```{r}
+
+anyDuplicated(WORDAC_1$PORTSAMPLE_ID)
+
+zone_lookup <- samples_reassigned %>%
+  st_drop_geometry() %>%
+  select(PORTSAMPLE_ID, ZONE = ZONE_reassigned)  # Rename to avoid overwriting too soon
+
+WORDAC_1 <- WORDAC_1 %>%
+  mutate(ZONE_original = ZONE) %>%     # Save old ZONE
+  select(-ZONE) %>% # so you don't get suffixes and confusion
+  left_join(zone_lookup, by = "PORTSAMPLE_ID")  # New ZONE replaces old one
+```
+
+
+
 
 ## Plotting Length data
 
