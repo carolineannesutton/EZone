@@ -12,8 +12,10 @@ libraries required
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
+# the following included in tidyverse
+  #library(ggplot2) 
+  #library(dplyr)
+  #library(tibble)
 library(kableExtra)
 library(knitr)
 library(cowplot)
@@ -26,6 +28,8 @@ library(mapdata)
 library(mapproj)
 library(sf)
 library(tibble)
+
+library(dplyr)
 ```
 
 
@@ -57,7 +61,9 @@ explore the data
 
 ```{r}
 WORDAC %>% 
-  dplyr::group_by(ZONE,year,month) %>% 
+  # dplyr::group_by(ZONE,year,month) %>% 
+  # dplyr::summarise(n = n())
+    dplyr::group_by(ZONE,year,month) %>% 
   dplyr::summarise(n = n())
 
 unique(WORDAC$SEX)
@@ -209,11 +215,12 @@ samples_reassigned <- st_join(samples_sf, zones_sf, join = st_within)
 # First, check actual column names:
 zone_cols <- names(samples_reassigned)[grepl("ZONE", names(samples_reassigned))]
 print(zone_cols)
+zone_cols
 
 # Then rename based on detected names:
 # (adjust these if your suffixes differ)
 samples_reassigned <- samples_reassigned %>%
-  rename(
+  dplyr::rename(
     ZONE_from_data = ZONE.x,         # Your original zone (before spatial join)
     ZONE_reassigned = ZONE.y         # New zone from polygon
   )
@@ -250,8 +257,12 @@ WORDAC_1 <- WORDAC_1 %>%
 
 
 ## Plotting Length data
-
+* by sex
+* by sex and month
+* by sex and zone
+* by month for each zone
 ### Length Histograms by Sex
+
 Females as expected are on average larger than males
 -histograms suggest different cohorts - possibly difference in zones
 - stats show that indeterminate fish are on averages smaller than F fish (-3.2 cm) and M fish (-1.9). 
@@ -268,21 +279,72 @@ WORDAC_1 %>%
 
 ```
 
-```{r}
-WORDAC_1$SEX <- factor(WORDAC_1$SEX, levels = c("F", "M", "Indeterminate"))
+Length by SEX
 
-# Plot
-ggplot(WORDAC_1, aes(x = LENGTH_CM)) +
-  geom_histogram(binwidth = 1, fill = "#69b3a2", color = "white") +
-  facet_grid(SEX ~ .) +  # vertical stacking by Sex
+```{r}
+# WORDAC_1$SEX <- factor(WORDAC_1$SEX, levels = c("F", "M", "Indeterminate"))
+# 
+# # Plot
+# ggplot(WORDAC_1, aes(x = LENGTH_CM)) +
+#   geom_histogram(binwidth = 1, fill = "#69b3a2", color = "white") +
+#   facet_grid(SEX ~ .) +  # vertical stacking by Sex
+#   xlab("Standard Length (cm)") +
+#   ylab("Count") +
+#   theme_minimal(base_size = 10) +
+#   theme(
+#     strip.text = element_text(face = "bold"),
+#     axis.title = element_text(size = 12),
+#     axis.text = element_text(size = 10)
+#   )
+```
+
+
+```{r}
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M")),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Standard Length (cm) by year") +
+  ylab("Count") +
+  #facet_grid(rows = vars(year), cols = vars(SEX), scales = "free_y")+
+  facet_grid(cols = vars(SEX), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
+```
+
+Length by sex and year
+```{r}
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M")),
+  aes(x = LENGTH_CM, fill = SEX)) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
+  xlab("Standard Length (cm) by") +
+  ylab("Count") +
+  facet_grid(rows = vars(year), cols = vars(SEX), scales = "free_y")+
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(
+  data = WORDAC_1 %>% filter(SEX %in% c("F", "M")),
+  aes(x = LENGTH_CM, fill = SEX)
+) +
+  geom_histogram(binwidth = 0.5, position = "identity", alpha = 0.5) +
+  geom_density(aes(y = ..count.., color = SEX), size = .1, adjust = .5, fill = NA) +
   xlab("Standard Length (cm)") +
   ylab("Count") +
-  theme_minimal(base_size = 10) +
-  theme(
-    strip.text = element_text(face = "bold"),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10)
-  )
+  facet_grid(year ~ SEX + month, scales = "free_y") +  # facet by year rows and sex+month columns
+  scale_fill_brewer(palette = "Set1") +
+  scale_color_brewer(palette = "Set1") +
+  labs(fill = "Sex", color = "Sex") +
+  theme_minimal()
 ```
 
 
@@ -321,7 +383,7 @@ plot(LF_sex)
 Thought perhaps the small fish may not have been easy to sex and that 'indeterminate' fish may have been obviously smaller - not super obvious - as many large fish are also classed as indeterminate.
 
 
-Check for statistical differneces in sex
+Check for statistical differences in sex
 ```{r}
 anova_model <- aov(LENGTH_CM ~ SEX, data = WORDAC_1)
 summary(anova_model)
