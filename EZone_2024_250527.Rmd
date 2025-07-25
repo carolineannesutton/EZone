@@ -201,7 +201,10 @@ Roughy_1 <- Roughy %>%
   drop_na(Ground) %>% 
   #drop_na(Length) %>% 
   drop_na(sex) %>% 
-  select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths)
+  select(Ground, year, Shot, Date,sex,stage, SLadj_cm,Length,ShotWeight_kg, weight_kg, Otoliths) %>% 
+   mutate(Wgt_derived = (0.037 * SLadj_cm ^ 2.952)/1000) %>%
+   mutate(Wgt_derived_MF = if_else(sex == "M",(0.0383 * SLadj_cm ^ 2.942)/1000, 
+                                   (0.0351 * SLadj_cm ^ 2.970)/1000, NA_real_)) 
 
 
 Roughy_DataSummary <- Roughy_1 %>% 
@@ -342,7 +345,7 @@ knitr::kable(head(t2.4, n=20), format = "html", caption = "Table 2.4 Summary of 
   kableExtra::scroll_box(width  = "100%")
 ```
 
-#### Data by shot: Length and derived
+#### Data by shot: Length and derived weight
 
 ```{r}
 Roughy_2_sum_L <- Roughy_2 %>% 
