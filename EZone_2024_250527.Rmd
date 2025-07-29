@@ -746,30 +746,154 @@ knitr::kable(tail(t2.8, n = 9), format = "html", caption = "Table 2.8 The propor
 
 write.csv(t2.8,"Figures/Prop_sex_Lylewt.csv")
 ```
+
+
+------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------
 ### Weight
 ------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+
 #### roughy weight vs length  - no weight for 2024, using data from 2019
 
-note that this graph has been corrected. The 2019 report the combined Lyle formula was incorrect. The  Lyle formula for Males (Lyle_com_Males) was used instead of the combined sex formula (Lyle_com)
+* note that this graph has been corrected. The 2019 report the combined Lyle formula was incorrect. The  Lyle formula for Males (Lyle_com_Males) was used instead of the combined sex formula (Lyle_com)
+
+* note that the LW models were effected by rounding issues  
+
+transform data
+```{r}
+Roughy <- Roughy %>% 
+  mutate(weight_g = weight_kg *1000) %>% 
+  mutate(log_weight = log(weight_g),
+         log_length = log(SLadj_cm),
+         log_kg = log(weight_kg))
+```
+
+subset for 2019
+```{r}
+  RoughyWeight_19<- Roughy%>%
+    filter(year==2019) %>%
+    drop_na(weight_kg) %>%
+    filter(weight_kg != 0) %>% 
+    mutate(year=as.factor(year))
+```
+
+understanding how 2019 model was generated 
+I'm not sure...
+
+females
+```{r}
+#females
+RoughyWeight_19F <- RoughyWeight_19 %>%
+  filter(sex == "F") 
+
+# Fit nonlinear model: W = a * L^b
+nls_model_2019F <- nls(
+  weight_g ~ a * SLadj_cm^b,
+  data = RoughyWeight_19F,
+  start = list(a = 0.07, b = 2.7)
+)
+
+summary(nls_model_2019F)
+# no need to back transform b/c its already in g not log
+```
+
+comparing all the models for females fish
+How this compares:
+
+Model	                        a	       b
+nonlinear fit	      0.0959	   2.7056
+Original model (S2019F)	  0.071	     2.7945 - not sure - rounding/units probs?
+Log-log linear fit	     ~0.1074	  ~2.6732 (same as excel power fit)
+
+
+2019 excel power fit 
+females g v cm
+y = 0.1074 x 2.6732
+
+all g v cm
+y = 0.0555x2.8502
+
+#### fit models for 2019 data
+--------------------------------------------------------------------------------------
+lm model
+this is different to the previous estimate presumably to rounding issues and transforming from kg to g perhaps.
+
+```{r}
+# Create log variables
+RoughyWeight_19 <- RoughyWeight_19 %>%
+  mutate(log_weight = log(weight_g),
+         log_length = log(SLadj_cm))
+
+# Fit the model
+lm_log <- lm(log_weight ~ log_length, data = RoughyWeight_19)
+summary(lm_log)
+
+# get the equation
+intercept <- coef(lm_log)[1]
+slope <- coef(lm_log)[2]
+
+a <- exp(intercept)  # Back-transform intercept
+b <- slope
+
+cat("Weight = ", round(a, 4), " * Length^", round(b, 4), "\n")
+```
+
+lm model-  by sex
+```{r}
+library(dplyr)
+library(broom)
+library(tidyr)
+library(purrr)
+
+# Fit model by sex using group_modify()
+models_by_sex <- RoughyWeight_19 %>%
+  group_by(sex) %>%
+  group_modify(~ {
+    model_2019 <- lm(log(weight_g) ~ log(SLadj_cm), data = .x)
+    tibble(model_2019 = list(model_2019))
+  })
+
+lm(log(weight_g) ~ log(SLadj_cm),data = RoughyWeight_19 %>% filter(sex == "F"))
+lm(log(weight_g) ~ log(SLadj_cm),data = RoughyWeight_19 %>% filter(sex == "M"))
+lm(log(weight_g) ~ log(SLadj_cm),data = RoughyWeight_19)
+
+exp(-2.231)
+
+# Extract coefficients
+coef_table <- models_by_sex %>%
+  mutate(tidy_mod = map(model_2019, broom::tidy)) %>%
+  unnest(tidy_mod) %>%
+  select(sex, term, estimate) %>%
+  pivot_wider(names_from = term, values_from = estimate) %>%
+  dplyr::rename(intercept = `(Intercept)`, slope = `log(SLadj_cm)`) %>%
+  mutate(a = exp(intercept),
+         b = slope,
+         equation = paste0("Weight = ", round(a, 4), " * Length^", round(b, 4)))
+
+print(coef_table)
+```
 
 ```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
 Lyle_com <- function(x) {(0.037 * (x) ^ 2.952)}
-#Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
-S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)}
-S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)}
-S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)}
+Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
+Lyle_com_Females <- function(x) {(0.0351 * (x) ^ 2.970)}
 
-  RoughyWeight<- Roughy%>%
-    filter(year==2019) %>%
-    drop_na(weight_kg) %>%
-    filter(weight_kg != 0) %>% 
-    mutate(weight_g = weight_kg *1000) %>%
-    mutate(year=as.factor(year))
+#data from 2020 - rounding issues - b/c the regression done with kg then back calculated
+S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
+S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
+S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
+# checked in 2025
+S2019F <- function(x) {(0.1073 * (x) ^ 2.673)} 
+S2019M <- function(x) {(0.2006 * (x) ^ 2.479)} 
+S2019 <- function(x) {(0.0555 * (x) ^ 2.850)} 
+#nls
+nls2019F <- function(x) {(0.0959 * (x) ^ 2.7056)} 
 
 
-f2.6<- ggplot(data = RoughyWeight,
+
+f2.6<- ggplot(data = RoughyWeight_19,
        mapping = aes(x  = SLadj_cm,
                      y = weight_g, colour = sex)) +
   scale_colour_manual(values = c("red", "blue"))+
@@ -777,36 +901,47 @@ f2.6<- ggplot(data = RoughyWeight,
   scale_x_continuous(breaks = seq(20,50,4),limits = c(20,50))+
   ylab("weight (g)")+
   xlab("Standard length (cm)")+ 
-  stat_function(fun = S2019F_fun, colour="red")+
-  stat_function(fun = S2019M_fun, colour = "blue") +
-  stat_function(fun = Lyle_com, colour ="black")+
-  #stat_function(fun = Lyle_com_1, colour ="pink")+
-  stat_function(fun = S2019_fun, colour ="orange")+
-  theme_bw()+
+ 
+
+  stat_function(fun = S2019F, colour="blue", linetype = 1)+
+    stat_function(fun = S2019M, colour = "blue",linetype = 2) +
+  # stat_function(fun = S2019, colour="black", linetype = 2)+
   
-  annotate('text', x = 22, y = 3800, size =4,hjust =0,
-           label = expression(paste("Weight"["Lyle sex combined"]^{}, 
-                                    " = 0.037 * Length"^{2.952})))+
-  
-  annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
-           label = expression(paste("Weight"["2019 sex combined"]^{},
-                                    " = 0.056 * Length"^{2.850})))+
-  
-  annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
-           label = expression(paste("Weight"["2019 Females"]^{},
-                                    "= 0.071 * Length"^{2.769}))) +
-  
-  annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
-           label = expression(paste("Weight"["2019 Males"]^{},
-                                    " = 0.073 * Length"^{2.794})))
+  stat_function(fun = S2019F_fun, colour="red", linetype = 1)+
+  stat_function(fun = S2019M_fun, colour = "red", linetype = 2) +
+  #stat_function(fun = S2019_fun, colour ="orange", linetype = 4)+
+  #stat_function(fun = Lyle_com, colour ="black")+
+  stat_function(fun = Lyle_com_Females, colour ="black", linetype = 1)+
+  stat_function(fun = Lyle_com_Males, colour ="black", linetype = 2)+
+  # 
+  #stat_function(fun = nls2019F, colour ="purple")+
+
+  ## update text if want to include
+  # annotate('text', x = 22, y = 3800, size =4,hjust =0,
+  #          label = expression(paste("Weight"["Lyle sex combined"]^{},
+  #                                   " = 0.037 * Length"^{2.952})))+
+  # 
+  # annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
+  #          label = expression(paste("Weight"["2019 sex combined"]^{},
+  #                                   " = 0.056 * Length"^{2.850})))+
+  # 
+  # annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
+  #          label = expression(paste("Weight"["2019 Females"]^{},
+  #                                   "= 0.071 * Length"^{2.769}))) +
+  # 
+  # annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
+  #          label = expression(paste("Weight"["2019 Males"]^{},
+  #                                   " = 0.073 * Length"^{2.794})))
+   theme_bw()
 
 plot(f2.6)
 ggsave("Figures/LvsW.emf",f2.6) # saves the plot to file :)
 ggsave("Figures/LvsW.jpg",f2.6) # saves the plot to file :)
 ggsave("Figures/LvsW.tiff",f2.6) # saves the plot to file :)
-
-
 ```
+
+
+
 ### Weigth vs Length series
 
 Figure 2.7a
