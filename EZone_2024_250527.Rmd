@@ -802,7 +802,11 @@ comparing all the models for females fish
 How this compares:
 
 Model	                        a	       b
+<<<<<<< HEAD
 nonlinear fit	      0.0959	   2.7056
+=======
+Your nonlinear fit	      0.0959	   2.7056
+>>>>>>> deb066788f69d15769145c461d42bf818c910710
 Original model (S2019F)	  0.071	     2.7945 - not sure - rounding/units probs?
 Log-log linear fit	     ~0.1074	  ~2.6732 (same as excel power fit)
 
@@ -881,18 +885,29 @@ Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
 Lyle_com_Females <- function(x) {(0.0351 * (x) ^ 2.970)}
 
 #data from 2020 - rounding issues - b/c the regression done with kg then back calculated
+<<<<<<< HEAD
 S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
 S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
 S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
+=======
+# S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
+# S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
+# S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
+>>>>>>> deb066788f69d15769145c461d42bf818c910710
 # checked in 2025
 S2019F <- function(x) {(0.1073 * (x) ^ 2.673)} 
 S2019M <- function(x) {(0.2006 * (x) ^ 2.479)} 
 S2019 <- function(x) {(0.0555 * (x) ^ 2.850)} 
+<<<<<<< HEAD
 #nls
 nls2019F <- function(x) {(0.0959 * (x) ^ 2.7056)} 
 
 
 
+=======
+
+
+>>>>>>> deb066788f69d15769145c461d42bf818c910710
 f2.6<- ggplot(data = RoughyWeight_19,
        mapping = aes(x  = SLadj_cm,
                      y = weight_g, colour = sex)) +
@@ -902,6 +917,7 @@ f2.6<- ggplot(data = RoughyWeight_19,
   ylab("weight (g)")+
   xlab("Standard length (cm)")+ 
  
+<<<<<<< HEAD
 
   stat_function(fun = S2019F, colour="blue", linetype = 1)+
     stat_function(fun = S2019M, colour = "blue",linetype = 2) +
@@ -919,6 +935,22 @@ f2.6<- ggplot(data = RoughyWeight_19,
   ## update text if want to include
   # annotate('text', x = 22, y = 3800, size =4,hjust =0,
   #          label = expression(paste("Weight"["Lyle sex combined"]^{},
+=======
+  stat_function(fun = S2019M, colour = "blue",linetype = 2) +
+  stat_function(fun = S2019F, colour="red", linetype = 2)+
+  stat_function(fun = S2019, colour="black", linetype = 2)+
+  
+  #stat_function(fun = S2019F_fun, colour="red")+
+  #stat_function(fun = S2019M_fun, colour = "blue") +
+  #stat_function(fun = S2019_fun, colour ="orange")+
+  stat_function(fun = Lyle_com, colour ="black")+
+  stat_function(fun = Lyle_com_Females, colour ="red")+
+  stat_function(fun = Lyle_com_Males, colour ="blue")+
+  theme_bw()
+  
+  # annotate('text', x = 22, y = 3800, size =4,hjust =0,
+  #          label = expression(paste("Weight"["Lyle sex combined"]^{}, 
+>>>>>>> deb066788f69d15769145c461d42bf818c910710
   #                                   " = 0.037 * Length"^{2.952})))+
   # 
   # annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
@@ -932,7 +964,10 @@ f2.6<- ggplot(data = RoughyWeight_19,
   # annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
   #          label = expression(paste("Weight"["2019 Males"]^{},
   #                                   " = 0.073 * Length"^{2.794})))
+<<<<<<< HEAD
    theme_bw()
+=======
+>>>>>>> deb066788f69d15769145c461d42bf818c910710
 
 plot(f2.6)
 ggsave("Figures/LvsW.emf",f2.6) # saves the plot to file :)
