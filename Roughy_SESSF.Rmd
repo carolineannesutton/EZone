@@ -13,6 +13,31 @@ Simon Boags data fits well into the Roughy index data for the Eastern Zone
 - residuals vs fitted look good for both F and M
 - consistent with both Lyle and 2019 data
 
+WORDOC
+bit of data wrangling to make sure lat/longs match zones
+
+Length comparisons *** indicates sig result/diff
+- by Sex
+    - F > M ***
+    - M, F > indeterminate ***
+    
+- by Zone
+    - Southern Fish smaller ***
+        - Southern fish are relatively MUCH smaller than BOTH Northern and Central fish 
+        *(-6.2cm and -4.91 cm respectively)
+        - Northern fish are larger than Central fish *(1.29cm)
+        
+    - Southern Fish higher prop of juv fish ***
+    (Juv = fish < 28cm)
+    
+- by sex and zone
+- by sex and zone and year
+- by sex and zone and year and month
+
+
+- significantly more juv fish in southern Zone
+- fish are significantly smaller in southern zone
+
 
 ## Set up
 libraries required
@@ -53,7 +78,7 @@ colnames(Boags)
 
 Boags <- Boags %>% 
   dplyr::rename(sex = Sex) %>% 
-  dplyr::rename(length_cm = Length_cm) %>% 
+  dplyr::rename(length_cm = Length_cm) 
 
 colnames(Boags)
 ```
@@ -185,18 +210,16 @@ ggplot(data = Boags,
 ```
 Plot by sex
 ```{r}
-# Annotation dataframe
 annotation_df <- tribble(
   ~sex,      ~x,  ~y,   ~label,                         ~text_colour,
-  "Female",  15, 2800, "Boags: W = 0.151 × L^2.572",    "red",
-  "Female",  15, 2700, "Lyle:  W = 0.0351 × L^2.970 -black", "black",
-  "Female",  15, 2600, "2019:  W = 0.1073 × L^2.673 -brown", "brown",
-  "Male",    15, 2800, "Boags: W = 0.148 × L^2.552",    "blue",
-  "Male",    15, 2700, "Lyle:  W = 0.0383 × L^2.942 -black", "black",
-  "Male",    15, 2600, "2019:  W = 0.2006 × L^2.479- brown", "brown"
+  "Female",  15, 2800, "Boags: W = 0.151 x L^2.572",    "red",
+  "Female",  15, 2700, "Lyle:  W = 0.0351 x L^2.970",    "black",
+  "Female",  15, 2600, "2019:  W = 0.1073 x L^2.673",    "brown",
+  "Male",    15, 2800, "Boags: W = 0.148 x L^2.552",     "blue",
+  "Male",    15, 2700, "Lyle:  W = 0.0383 x L^2.942",    "black",
+  "Male",    15, 2600, "2019:  W = 0.2006 x L^2.479",    "brown"
 )
 
-# Plot
 ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
   geom_point(aes(colour = sex), size = 0.3) +
 
@@ -218,23 +241,26 @@ ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
   stat_function(data = Boags %>% filter(sex == "Male"),
                 fun = S2019M, colour = "brown", linewidth = 0.8, linetype = "dashed") +
 
-  # Add annotations
+  # Add annotations, set colour outside aes()
   geom_text(
     data = annotation_df,
-    aes(x = x, y = y, label = label, colour = text_colour),
+    aes(x = x, y = y, label = label),
+    colour = annotation_df$text_colour,
     inherit.aes = FALSE,
     hjust = 0, size = 3
   ) +
-scale_colour_identity(guide = "none")+
+
   # Facet by sex
   facet_wrap(~sex) +
 
-  # Set point colours only
+  # Manual colour scale for points and legend
   scale_colour_manual(values = c("Female" = "red", "Male" = "blue")) +
 
   labs(x = "Length (cm)", y = "Weight (g)", colour = "Sex") +
   theme_minimal()
 ```
+
+
 
 
 ### compare value from model with real value
@@ -279,6 +305,8 @@ ggplot(Boags, aes(x = Wgt_2019, y = weight_g, colour = sex)) +
   labs(x = "Predicted", y = "Observed") +
   theme_minimal()
 ```
+
+
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #WORDAC                                    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -523,6 +551,8 @@ Females as expected are on average larger than males
 - stats show that indeterminate fish are on averages smaller than F fish (-3.2 cm) and M fish (-1.9). 
 
 ```{r}
+
+library(Rmisc)
 summarySE(WORDAC_1, measurevar = "LENGTH_CM", groupvars = c("SEX")) 
 
 WORDAC_1 %>%
@@ -552,38 +582,64 @@ Thought perhaps the small fish may not have been easy to sex and that 'indetermi
 Add in a juvenile column
 ```{r}
 WORDAC_1 <- WORDAC_1 %>% 
-  mutate(Juv = ifelse(LENGTH_CM < 28,"J","M")) 
+  mutate(Juv = ifelse(LENGTH_CM < 28,"Juv","Mat")) 
 
 JuvFish <- WORDAC_1 %>% 
-  select(ZONE,year,month, SEX,LENGTH_CM,Juv) %>%
+  select(ZONE,year,month, SEX,LENGTH_CM,Juv) %>% 
   group_by(ZONE,year,month,Juv) %>% 
   dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
   dplyr::group_by(ZONE,year,month) %>% 
-    dplyr::mutate(prop = n / sum(n)) %>%
-  dplyr::ungroup() %>% 
-  
-  
-  
-  
-  
-
-  dplyr::group_by(ZONE, SEX, LENGTH_CM) %>%
-  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
-  
-  # 2. Get total per ZONE (not per facet!)
-  dplyr::group_by(ZONE) %>%
   dplyr::mutate(prop = n / sum(n)) %>%
-  dplyr::ungroup()
+  dplyr::ungroup()  
+```
+
+plot of juv prop
+- southern zone has more juv fish
+
+```{r}
+ggplot(JuvFish, aes(x = month, y = prop, fill = Juv)) +
+  geom_col(position = "fill") +
+  facet_grid(ZONE ~ year) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title = "Proportion of Juvenile vs Mature Fish",
+    y = "Proportion",
+    x = "Month",
+    fill = "Stage (Juv/Mature)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8)
+  )
   
 ```
 
+is this statistically significant? - yes
+
+- anova signficantly more juv in southern zone relative to central and northen
+- no diff b/w northern and cenral wrt to the juv fish
+```{r}
+
+# sig diff in Juv depending on zone
+table_juv <- table(WORDAC_1$ZONE, WORDAC_1$Juv)
+chisq.test(table_juv)
+
+
+#ANOVA
+WORDAC_1 <- WORDAC_1 %>%
+  mutate(Juv_bin = ifelse(LENGTH_CM < 28, 1, 0))
+
+model <- glm(Juv_bin ~ ZONE, data = WORDAC_1, family = binomial)
+summary(model)
+anova(model, test = "Chisq")
+```
 Check for statistical differences in sex
 
 Thought perhaps the small fish may not have been easy to sex and that 'indeterminate' fish may have been obviously smaller - not super obvious - as many large fish are also classed as indeterminate.
 
 Sex and interaction is significant
 
-Tukey = all groups are diff from eachother. Both F and M are longer than Indeterminate. Suggests some evidence that smaller fish/imature fish were hard to sex?
+Tukey = all groups are diff from each other. Both F and M are longer than Indeterminate. Suggests some evidence for the theory smaller fish/imature fish were hard to sex?
 ```{r}
 anova_model <- aov(LENGTH_CM ~ SEX, data = WORDAC_1)
 summary(anova_model)
@@ -606,7 +662,6 @@ WORDAC_1 %>%
     n = n()
   )
 ```
-
 
 ### Length by sex and zone
 ANOVA and Tukey test
@@ -772,6 +827,9 @@ WORDAC_1 %>%
   dplyr::summarise(total = n())
 ```
 ```{r}
+
+library(scales)
+
 # 1. Bin length values (e.g. round down to nearest cm)
 lf_zone_year_prop <- WORDAC_1 %>%
   filter(SEX %in% c("F", "M")) %>%
@@ -883,6 +941,8 @@ ggplot(
   theme_minimal()
 ```
 
+
+### Different types of graphs - based on EZ code
 ```{r}
 LF_Tally_Sex <- WORDAC_1 %>%
   #filter(Sex =="F" |Sex =="M") %>%
@@ -945,13 +1005,13 @@ unique(WORDAC_1$ZONE)
 
 ```{r}
 LF_Tally <- WORDAC_1 %>%
-   filter(Sex =="F" |Sex =="M") %>%
-   group_by(ZONE,Sex) %>%
+   filter(SEX =="F" |SEX =="M") %>%
+   group_by(ZONE,SEX) %>%
    add_tally() %>%
-group_by(ZONE,Sex,Lgt_cm) %>%
+group_by(ZONE,SEX,LENGTH_CM) %>%
    dplyr::summarise(prop = n() / n[1])
 
- LF <- ggplot(LF_Tally, aes(Lgt_cm, prop, fill = Sex)) +
+ LF <- ggplot(LF_Tally, aes(LENGTH_CM, prop, fill = SEX)) +
    geom_col(position = "identity", alpha = 0.6) +
    scale_x_continuous(breaks = seq(0,65,10),limits = c(0,65))+
    scale_y_continuous(breaks = seq(0,0.15,0.1),limits = c(0,0.15),
@@ -1177,68 +1237,13 @@ summary(Anova_Zone)
 TukeyHSD(Anova_Zone)
 
 ```
+unbalanced 
 
-
-stats with chatgpt
 ```{r}
-results <- WORDAC_1 %>%
-  filter(SEX %in% c("F", "M")) %>%
-  dplyr::group_by(ZONE, year) %>%
-  dplyr::group_modify(~ {
-    data_sub <- .
-    
-    # Drop rows with missing values
-    data_sub <- data_sub %>%
-      filter(!is.na(LENGTH_CM), !is.na(MonthName), !is.na(SEX))
-    
-    # Drop unused factor levels
-    data_sub <- droplevels(data_sub)
-    
-    # Defensive: If no data left, skip
-    if (nrow(data_sub) == 0) {
-      message("No data: ", unique(.$ZONE), " ", unique(.$year))
-      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
-                    ZONE = unique(.$ZONE), year = unique(.$year)))
-    }
-
-    # Ensure factors are truly re-factored
-    data_sub$MonthName <- droplevels(as.factor(data_sub$MonthName))
-    data_sub$SEX <- droplevels(as.factor(data_sub$SEX))
-
-    if (nlevels(data_sub$MonthName) < 2) {
-      message("MonthName has < 2 levels: ", unique(data_sub$ZONE), " ", unique(data_sub$year))
-      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
-                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
-    }
-
-    if (nlevels(data_sub$SEX) < 2) {
-      message("SEX has < 2 levels: ", unique(data_sub$ZONE), " ", unique(data_sub$year))
-      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
-                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
-    }
-
-    # Fit the model safely
-    fit <- tryCatch(
-      aov(LENGTH_CM ~ MonthName + SEX, data = data_sub),
-      error = function(e) {
-        message("Model failed for ", unique(data_sub$ZONE), " ", unique(data_sub$year), ": ", e$message)
-        return(NULL)
-      }
-    )
-
-    if (is.null(fit)) {
-      return(tibble(term = "MonthName", statistic = NA_real_, p.value = NA_real_,
-                    ZONE = unique(data_sub$ZONE), year = unique(data_sub$year)))
-    }
-
-    # Extract result
-    broom::tidy(fit) %>%
-      filter(term == "MonthName") %>%
-      mutate(ZONE = unique(data_sub$ZONE), year = unique(data_sub$year))
-  }) %>%
-  ungroup() %>%
-  select(ZONE, year, term, statistic, p.value)
-
-print(results)
-
+library(car)
+Anova_Zone_lm <- lm(LENGTH_CM ~ year * MonthName * SEX, 
+                    data = WORDAC_1 %>% filter(SEX %in% c("F", "M"), ZONE == "Northern"))
+Anova(Anova_Zone_lm, type = 2)
 ```
+
+
