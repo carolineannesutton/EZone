@@ -488,7 +488,7 @@ pd <- position_dodge(0) # in case need to experiment with operlap of values - th
 SH <- ggplot(Roughy_2_lengthsum %>% 
                filter(Ground == "St Helens"),
              aes(x = reorder(Shot, sort((Shot))),y = Length, colour = sex)) +
-    geom_errorbar(aes(ymin = Length - se, ymax= Length + ci),
+    geom_errorbar(aes(ymin = Length - ci, ymax = Length + ci),
                 width =.7, position = pd) +
    geom_point( position = pd, size = 2, width = 1)+
 # facet_grid(.~Date, 
@@ -782,6 +782,7 @@ subset for 2019
 understanding how 2019 model was generated 
 I'm not sure...
 
+Non linear models (nls)
 females
 ```{r}
 #females
@@ -865,6 +866,7 @@ lm(log(weight_g) ~ log(SLadj_cm),data = RoughyWeight_19)
 
 exp(-2.231)
 
+
 # Extract coefficients
 coef_table <- models_by_sex %>%
   mutate(tidy_mod = map(model_2019, broom::tidy)) %>%
@@ -881,19 +883,16 @@ print(coef_table)
 
 ```{r myfig2.6}, out.width='100%', fig.align='center', fig.cap= "Length vs Weight, showing the predicted values (Lyle 1991)"}
 
+# Lyle equation
 Lyle_com <- function(x) {(0.037 * (x) ^ 2.952)}
-Lyle_com_Males <- function(x) {(0.037 * (x) ^ 2.942)}
+Lyle_com_Males <- function(x) {(0.0383 * (x) ^ 2.942)}
 Lyle_com_Females <- function(x) {(0.0351 * (x) ^ 2.970)}
 
 #data from 2020 - rounding issues - b/c the regression done with kg then back calculated
 
-S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
-S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
-S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
-
-# S2019_fun <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
-# S2019M_fun <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
-# S2019F_fun <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
+S2019_BC <- function(x) {(0.056 * (x) ^ 2.8502)} # ? unsure
+S2019M_BC <-function(x) {(0.073 * (x) ^ 2.7685)} # ? unsure
+S2019F_BC <-function(x) {(0.071 * (x) ^ 2.7945)} # ? unsure
 
 # checked in 2025
 S2019F <- function(x) {(0.1073 * (x) ^ 2.673)}
@@ -918,16 +917,16 @@ f2.6<- ggplot(data = RoughyWeight_19,
   xlab("Standard length (cm)")+ 
  
 
-  stat_function(fun = S2019F, colour="blue", linetype = 1)+
-    stat_function(fun = S2019M, colour = "blue",linetype = 2) +
-  # stat_function(fun = S2019, colour="black", linetype = 2)+
-  
-  stat_function(fun = S2019F_fun, colour="red", linetype = 1)+
-  stat_function(fun = S2019M_fun, colour = "red", linetype = 2) +
+  stat_function(fun = S2019F, colour="green", linetype = 1)+
+  stat_function(fun = S2019M, colour = "green",linetype = 2) +
+  # # stat_function(fun = S2019, colour="black", linetype = 2)+
+  # 
+  stat_function(fun = S2019F_BC, colour="orange", linetype = 1)+
+  stat_function(fun = S2019M_BC, colour = "orange", linetype = 2) +
   #stat_function(fun = S2019_fun, colour ="orange", linetype = 4)+
   #stat_function(fun = Lyle_com, colour ="black")+
-  #stat_function(fun = Lyle_com_Females, colour ="black", linetype = 1)+
-  #stat_function(fun = Lyle_com_Males, colour ="black", linetype = 2)+
+  stat_function(fun = Lyle_com_Females, colour = "black", linetype = 1)+
+  stat_function(fun = Lyle_com_Males, colour ="black", linetype = 2)+
   # 
   #stat_function(fun = nls2019F, colour ="purple")+
 
@@ -935,36 +934,52 @@ f2.6<- ggplot(data = RoughyWeight_19,
   # annotate('text', x = 22, y = 3800, size =4,hjust =0,
   #          label = expression(paste("Weight"["Lyle sex combined"]^{},
 
-  stat_function(fun = S2019M, colour = "blue",linetype = 2) +
-  stat_function(fun = S2019F, colour="red", linetype = 2)+
-  stat_function(fun = S2019, colour="black", linetype = 2)+
+  # stat_function(fun = S2019M, colour = "blue",linetype = 2) +
+  # stat_function(fun = S2019F, colour="red", linetype = 2)+
+  # stat_function(fun = S2019, colour="black", linetype = 2)+
   
   #stat_function(fun = S2019F_fun, colour="red")+
   #stat_function(fun = S2019M_fun, colour = "blue") +
   #stat_function(fun = S2019_fun, colour ="orange")+
-  stat_function(fun = Lyle_com, colour ="black")+
-  stat_function(fun = Lyle_com_Females, colour ="red")+
-  stat_function(fun = Lyle_com_Males, colour ="blue")+
-  theme_bw()
+  #stat_function(fun = Lyle_com, colour ="black")+
+  # stat_function(fun = Lyle_com_Females, colour ="black",linetype_pal = 1)+
+  # stat_function(fun = Lyle_com_Males, colour ="black", linetype_pal = 2)+
+  theme_bw()+
   
+  # NOTE this is the old annotation
   # annotate('text', x = 22, y = 3800, size =4,hjust =0,
-  #          label = expression(paste("Weight"["Lyle sex combined"]^{}, 
-
-  #                                   " = 0.037 * Length"^{2.952})))+
+  #           label = expression(paste("Weight"["Lyle sex combined"]^{}," = 0.037 * Length"^{2.952})))+
   # 
-  # annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
-  #          label = expression(paste("Weight"["2019 sex combined"]^{},
-  #                                   " = 0.056 * Length"^{2.850})))+
+  #  annotate('text', x = 22, y = 3500, size = 4, hjust = 0,colour = "orange",
+  #           label = expression(paste("Weight"["2019 sex combined"]^{},
+  #                                    " = 0.056 * Length"^{2.850})))+
   # 
-  # annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
-  #          label = expression(paste("Weight"["2019 Females"]^{},
-  #                                   "= 0.071 * Length"^{2.769}))) +
+  #  annotate('text', x = 22, y = 3200, size =4,hjust =0,colour = "red",
+  #           label = expression(paste("Weight"["2019 Females"]^{},
+  #                                  "= 0.071 * Length"^{2.769}))) +
+  # 
+  #  annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
+  #           label = expression(paste("Weight"["2019 Males"]^{},
+  #                                  " = 0.073 * Length"^{2.794})))
   # 
   # annotate('text', x = 22, y = 2900, size =4, hjust =0, colour = "blue",
   #          label = expression(paste("Weight"["2019 Males"]^{},
   #                                   " = 0.073 * Length"^{2.794})))
+  #  
+ annotate('text', x = 22, y = 3800, size =3, hjust =0, colour = "green",
+           label = expression(paste("2019")))+
 
-   theme_bw()
+annotate('text', x = 22, y = 3600, size =3, hjust =0, colour = "orange",
+           label = expression(paste("2019 back calculated")))+
+
+annotate('text', x = 22, y = 3400, size =3, hjust =0, colour = "black",
+           label = expression(paste("Lyle")))+
+
+annotate('text', x = 22, y = 3200, size =3, hjust =0, colour = "black",
+           label = expression(paste("solid line = female models")))+
+  
+  annotate('text', x = 22, y = 3000, size =3, hjust =0, colour = "black",
+           label = expression(paste("dashed line = male models")))
 
 
 plot(f2.6)
@@ -1018,11 +1033,16 @@ OR Weight vs Length series by year
 ```{r}
 OR_Weight_series <- OR_Weight_series_allyears %>%
   drop_na(weight_kg) %>%
-  filter(weight_kg != 0)
-    
+  filter(weight_kg != 0) %>% 
+  mutate(weight_g = weight_kg * 1000)
 
+#models
 Lyle_com_kg <- function(x) {(0.037 * (x) ^ 2.952)/1000}
-    
+Lyle_com_g <- function(x) {(0.037 * (x) ^ 2.952)}
+```
+
+### plot in weight (kg)
+```{r}
 f2.7<- ggplot(data = OR_Weight_series,
        mapping = aes(x  = Length,
                      y = weight_kg, colour = year)) +
@@ -1035,12 +1055,50 @@ f2.7<- ggplot(data = OR_Weight_series,
   facet_wrap(~year)
 
 plot(f2.7)
+ggsave("Figures/LWindex_kg.emf",f2.7)
+ggsave("Figures/LWindex_kg.jpg",f2.7)# saves the plot to file :)
+plot(f2.7)
+```
+
+plot weight index weight (g)
+```{r}
+LWindex_g<- ggplot(data = OR_Weight_series,
+       mapping = aes(x  = Length,
+                     y = weight_g, colour = year)) +
+  geom_point()+
+  #geom_smooth(method="glm", method.args=list(family=gaussian(link="log")),
+  #colour = "blue", linetype = 2, size = .5)+
+  ylab("weight (g)")+
+  xlab("Standard length (cm)")+            
+  stat_function(fun = Lyle_com_g, colour ="black")+
+  facet_wrap(~year)
+
+plot(LWindex_g)
+ggsave("Figures/LWindex_g.emf",LWindex_g)
+ggsave("Figures/LWindex_g.jpg",LWindex_g)# saves the plot to file :)
+plot(LWindex_g)
+```
+
+
+report in (g)
+```{r}
+f2.7<- ggplot(data = OR_Weight_series,
+       mapping = aes(x  = Length,
+                     y = weight_kg, colour = year)) +
+  geom_point()+
+  #geom_smooth(method="glm", method.args=list(family=gaussian(link="log")),
+  #colour = "blue", linetype = 2, size = .5)+
+  ylab("weight (g)")+
+  xlab("Standard length (cm)")+            
+  stat_function(fun = Lyle_com_kg, colour ="black")+
+  facet_wrap(~year)
+
+plot(f2.7)
 ggsave("Figures/LWindex.emf",f2.7)
 ggsave("Figures/LWindex.jpg",f2.7)# saves the plot to file :)
 plot(f2.7)
 
 ```
-
 #### calculate change in LW relationship
 
 ```{r}
