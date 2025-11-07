@@ -209,37 +209,92 @@ ggplot(data = Boags,
 
 ```
 Plot by sex
+
+```{r}
+LW2024 <- ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
+  # Raw data points
+  geom_point(aes(colour = sex), size = 0.5) +
+  scale_x_continuous(breaks = seq(25,45,3), limits = c(25,45)) +
+
+  # Model fits: mapped to 'model' so they get their own legend
+    stat_function(data = Boags %>% filter(sex == "Female"),
+                fun = Lyle_f, aes(colour = "Lyle model"), linewidth = 0.7) +
+  stat_function(data = Boags %>% filter(sex == "Male"),
+                fun = Lyle_m, aes(colour = "Lyle model"), linewidth = 0.7) +
+
+  stat_function(data = Boags %>% filter(sex == "Female"),
+                fun = S2019F, aes(colour = "2019 model"), linewidth = 0.7) +
+  stat_function(data = Boags %>% filter(sex == "Male"),
+                fun = S2019M, aes(colour = "2019 model"), linewidth = 0.7) +
+  
+    stat_function(data = Boags %>% filter(sex == "Female"),
+                fun = Boags_f, aes(colour = "2024 model"), linewidth = 0.7) +
+  stat_function(data = Boags %>% filter(sex == "Male"),
+                fun = Boags_m, aes(colour = "2024 model"), linewidth = 0.7) +
+
+  # Add annotations (fixed colour, no legend)
+  geom_text(
+    data = annotation_df,
+    aes(x = x, y = y, label = label),
+    colour = annotation_df$text_colour,
+    inherit.aes = FALSE,
+    hjust = 0, size = 5
+  ) +
+
+  # Facet by sex
+  facet_wrap(~sex) +
+
+# Manual colour scale for both sexes and models
+scale_colour_manual(
+  name = "Legend",
+  values = c(
+    "Female" = "red", "Male" = "blue",   # data points
+    "Lyle model" = "black", "2019 model" = "green", "2024 model" = "red"  # model fits
+  ),
+  breaks = c("Female", "Male","Lyle model", "2019 model", "2024 model") # control order
+) +
+  
+
+
+  labs(x = "Length (cm)", y = "Weight (g)") +
+  theme_minimal()
+
+plot(LW2024)
+ggsave("Figures/LW2024.jpg", LW2024, width = 8, height = 6, dpi = 300)
+```
+
 ```{r}
 annotation_df <- tribble(
   ~sex,      ~x,  ~y,   ~label,                         ~text_colour,
   "Female",  15, 2800, "Boags: W = 0.151 x L^2.572",    "red",
   "Female",  15, 2700, "Lyle:  W = 0.0351 x L^2.970",    "black",
-  "Female",  15, 2600, "2019:  W = 0.1073 x L^2.673",    "brown",
-  "Male",    15, 2800, "Boags: W = 0.148 x L^2.552",     "blue",
+  "Female",  15, 2600, "2019:  W = 0.1073 x L^2.673",    "green",
+  "Male",    15, 2800, "Boags: W = 0.148 x L^2.552",     "red",
   "Male",    15, 2700, "Lyle:  W = 0.0383 x L^2.942",    "black",
-  "Male",    15, 2600, "2019:  W = 0.2006 x L^2.479",    "brown"
+  "Male",    15, 2600, "2019:  W = 0.2006 x L^2.479",    "green"
 )
 
-ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
-  geom_point(aes(colour = sex), size = 0.3) +
+LW2024 <- ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
+  geom_point(aes(colour = sex), size = 0.5) +
+  scale_x_continuous(breaks = seq(25,45,3),limits = c(25,45))+
 
   # Boags fits
   stat_function(data = Boags %>% filter(sex == "Female"),
-                fun = Boags_f, colour = "red", linewidth = 0.8) +
+                fun = Boags_f, colour = "red", linewidth = 0.7) +
   stat_function(data = Boags %>% filter(sex == "Male"),
-                fun = Boags_m, colour = "blue", linewidth = 0.8) +
+                fun = Boags_m, colour = "red", linewidth = 0.7) +
 
   # Lyle fits
   stat_function(data = Boags %>% filter(sex == "Female"),
-                fun = Lyle_f, colour = "black", linewidth = 0.8, linetype = "dashed") +
+                fun = Lyle_f, colour = "black", linewidth = 0.7) +
   stat_function(data = Boags %>% filter(sex == "Male"),
-                fun = Lyle_m, colour = "black", linewidth = 0.8, linetype = "dashed") +
+                fun = Lyle_m, colour = "black", linewidth = 0.7) +
 
   # 2019 fits
   stat_function(data = Boags %>% filter(sex == "Female"),
-                fun = S2019F, colour = "brown", linewidth = 0.8, linetype = "dashed") +
+                fun = S2019F, colour = "green", linewidth = 0.7) +
   stat_function(data = Boags %>% filter(sex == "Male"),
-                fun = S2019M, colour = "brown", linewidth = 0.8, linetype = "dashed") +
+                fun = S2019M, colour = "green", linewidth = 0.7) +
 
   # Add annotations, set colour outside aes()
   geom_text(
@@ -247,7 +302,7 @@ ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
     aes(x = x, y = y, label = label),
     colour = annotation_df$text_colour,
     inherit.aes = FALSE,
-    hjust = 0, size = 3
+    hjust = 0, size = 20
   ) +
 
   # Facet by sex
@@ -255,15 +310,58 @@ ggplot(data = Boags, aes(x = length_cm, y = weight_g)) +
 
   # Manual colour scale for points and legend
   scale_colour_manual(values = c("Female" = "red", "Male" = "blue")) +
+  
 
   labs(x = "Length (cm)", y = "Weight (g)", colour = "Sex") +
   theme_minimal()
+
+
+plot(LW2024)
+ggsave("Figures/LW2024.jpg",LW2024) # saves the plot to file :)
 ```
 
 
 
 
 ### compare value from model with real value
+
+
+```{r}
+
+library(patchwork)
+
+Boags <- Boags %>%
+  mutate(resid_2024 = weight_g - Wgt_boags,
+         resid_Lyle = weight_g - Wgt_Lyle)
+
+# Residual plot for 2024 model
+p1 <- ggplot(Boags, aes(x = Wgt_boags, y = resid_2024, colour = sex)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Predicted (2024 model)", 
+       y = "Residual (Observed - Predicted)") +
+  theme_minimal()
+
+# Residual plot for Lyle model
+p2 <- ggplot(Boags, aes(x = Wgt_Lyle, y = resid_Lyle, colour = sex)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Predicted (Lyle model)", 
+       y = "Residual (Observed - Predicted)") +
+  theme_minimal()
+
+# Combine with labels A, B
+combined <- (p1 | p2) + 
+  #plot_annotation(tag_levels = 'A') & 
+  theme(legend.position = "bottom")
+
+plot(combined)
+
+ggsave("Figures/Residuals_2024_vs_Lyle.jpg", combined, width = 10, height = 5)
+```
+
+
+
 add predicted weights to the Boags data based on Lyle and 2019 models
 ```{r}
 Boags <- Boags %>% 
@@ -279,13 +377,17 @@ Boags <- Boags %>%
 
 look at difference between model and real values for weight
 
-Predicted vs Observed for Boags data
+Predicted vs Observed for "Boags 2024" data
 ```{r}
-ggplot(Boags, aes(x = Wgt_boags, y = weight_g, colour = sex)) +
+PvsO_2024 <- ggplot(Boags, aes(x = Wgt_boags, y = weight_g, colour = sex)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
-  labs(x = "Wgt_boags_model", y = "weight_g") +
+  labs(x = "Wgt_2024_model", y = "weight_g") +
   theme_minimal()
+
+plot(PvsO_2024)
+ggsave("Figures/PvsO_2024.jpg",PvsO_2024) # saves the plot to file :)
+
 ```
 
 Predicted_Lyle vs Observed 
@@ -293,7 +395,7 @@ Predicted_Lyle vs Observed
 ggplot(Boags, aes(x = Wgt_Lyle, y = weight_g, colour = sex)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") +
-  labs(x = "Predicted", y = "Observed") +
+  labs(x = "Predicted_Lyle", y = "Observed") +
   theme_minimal()
 ```
 
@@ -302,7 +404,7 @@ Predicted_2019 vs observed
 ggplot(Boags, aes(x = Wgt_2019, y = weight_g, colour = sex)) +
   geom_point() +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "brown") +
-  labs(x = "Predicted", y = "Observed") +
+  labs(x = "Predicted_2019", y = "Observed") +
   theme_minimal()
 ```
 
