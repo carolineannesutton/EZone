@@ -2,7 +2,9 @@
 title: 'Orange Roughy Eastern Zone: Biological Summary from the Acoustic Survey 2024'
 author: "sutton"
 date: "2025-01-28"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
 
 ---
 
