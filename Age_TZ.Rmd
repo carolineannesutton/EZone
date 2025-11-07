@@ -1,0 +1,535 @@
+---
+title: "AGE_Maturity"
+author: "sutton"
+date: "2025-10-09"
+output:
+  html_document:
+    code_folding: hide
+---
+
+## set up 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load libraries
+
+```{r cars}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+```
+# Notes
+
+## Location of Age Data containing counts "to TZ" and "TZ to Edge"
+TZ = Transition Zone
+Age = toTZ + TZtoEdge
+
+### 1987 data:
+
+from "All_LMZdata.xls" from the Acoustic archives
+
+"\\FS1-HBA.nexus.csiro.au\{oa-acoustics}\reference\Acoustics\Projects\Completed\Archived\OR Eastern Zone Index_R_01855_01\Data\compiled data_Sutton\age_data\Kyne FAS\Kyne's CD Roughy Age Data\LMZ\All_LMZdata.xls"
+
+Note that all shots have been cross-checked to Cathy Bulman's Soela shot data. The FAS age data record the Shots to be from "St Helens". However checking with Bulaman's Soela data confirms that these shots were infact "paddys head". Unfortunately the 1987 data do not have lat/longs to confirm, but I have decided to go with the Bulman data records.
+
+
+"\\FS1-HBA.nexus.csiro.au\{oa-acoustics}\reference\Acoustics\Projects\Completed\Archived\OR Eastern Zone Index_R_01855_01\analysis\biological\Roughy Length (weight) Index Series\CSIRO's OR Length_Weight Data Holding30apr2013.xlsx"
+
+### 1992
+
+"\\FS1-HBA.nexus.csiro.au\{oa-acoustics}\reference\Acoustics\Projects\Completed\Archived\OR Eastern Zone Index_R_01855_01\Data\compiled data_Sutton\age_data\Sally_Wayte\east raw age 1992.xls"
+
+### 1999
+
+"\\FS1-HBA.nexus.csiro.au\{oa-acoustics}\reference\Acoustics\Projects\Completed\Archived\OR Eastern Zone Index_R_01855_01\Data\compiled data_Sutton\age_data\Kyne FAS\Kyne's CD Roughy Age Data\LMZ\All_LMZdata.xls"
+
+see specific notes below wrt "Mark type" field where there was an field experiemnt to compare shots within spawning aggregation and the background population
+- contains data for 1987 and 1999, "Mark type" is only relevant for the 1999 data
+
+### 2004
+
+"\\FS1-HBA.nexus.csiro.au\{oa-acoustics}\reference\Acoustics\Projects\Completed\Archived\OR Eastern Zone Index_R_01855_01\Data\compiled data_Sutton\age_data\Eastern age estimates 2004.xls"
+
+need two sheets within the workbook 
+- "data" contains reading to to TZ and Edge
+- "age and biodata" contains shot data to cross reference
+
+### 2010 to 2024
+
+These data are relatively recent  and we are  confident with its providence :)
+
+### Load Data
+
+```{r}
+
+A2024 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2024.csv')
+A2024_shot <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/RoughyShot_EZ_2024.csv')
+
+A2019 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2019.csv')
+
+A2012n16 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2012&16.csv')
+ 
+A2010 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2010.csv')
+
+A2004 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2004.csv')
+A2004TZ <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_2004_TZ.csv')
+
+A1999 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_1999.csv')
+
+A1992 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_1992.csv')
+
+A1987 <- read_csv('T:/Sutton/RoughyEasternZoneBiologicalsData/AGE_maturity/forR/OR_AGE_EZ_87.csv')
+
+```
+
+### determine the fields required
+
+```{r}
+colnames(A2019)
+```
+### select fields for each data set 
+create day, month, year
+
+#### 2024
+
+```{r}
+A2024 %>% 
+  group_by(Shot,DOC,Location) %>% 
+  summarise(n())
+```
+
+```{r}
+A2024_shot %>% 
+  group_by(Shot_Number,Location) %>% 
+  summarise(n())
+
+A2024_shot <- A2024_shot %>% 
+  drop_na(Shot_Number)
+```
+
+```{r}
+
+A2024 <- A2024 %>%
+  mutate(doc1 = DOC) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  )
+
+A2024_shot <- A2024_shot %>% 
+  select(Shot = Shot_Number, Location, Date = DOC)
+
+A2024 <- A2024 %>% 
+  left_join(A2024_shot, by = "Shot") %>% 
+  mutate(Location = Location.y)
+
+  
+
+A_24 <- A2024 %>% 
+  select(Batch_ID, FishNumber, otoweight, `0-TZ`,`TZ-E`,Age = Age1,
+         Length_1, Length_1_cat,Length_Unit,
+         Whole_weight,Weight_Unit,
+         Sex, Stage,
+         Zone, Location,
+         Year = year, DOC, Shot)
+
+A2024 %>% 
+  group_by(Location,DOC, Shot) %>% 
+  summarise(n())
+```
+
+#### 2019
+
+```{r}
+
+A_19 <- A2019 %>% 
+  select(Batch_ID,FishNumber,otoweight,`0-TZ`,`TZ-E`,Age = Age1,
+         Length_1,Length_1_cat, Length_Unit,
+         Whole_weight, Weight_Unit, 
+         Sex,Stage,
+         Zone,Location = Location_Port_Descriptor, 
+         Year = year, DOC, Shot)
+```
+
+#### 2012 and 2016
+
+```{r}
+
+A2012n16 <- A2012n16 %>%
+  mutate(doc1 = DOC) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  ) %>% 
+  
+    mutate(Sex = ifelse(Sex == 1, "M",
+                      ifelse(Sex == 2, "F", NA)))
+
+A_12n16 <- A2012n16 %>% 
+  select(Batch_ID, FishNumber,otoweight,`0-TZ`,`TZ-E`, Age=`Total Age`,
+         Length_1,Length_1_cat, Length_Unit, 
+         Whole_weight,Weight_Unit, 
+         Sex,Stage,
+         Zone,Location,
+         Year, DOC, Shot)
+```
+
+#### 2010
+
+```{r}
+
+A2010 <- A2010 %>%
+  mutate(doc1 = DOC) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  ) %>% 
+  mutate(Year = 2010)
+
+A_10 <- A2010 %>% 
+  select(Batch_ID = Batch, FishNumber = Fish_Num, otoweight = `Otolith weight`,
+         `0-TZ`,`TZ-E`,Age,
+         Length_1, Length_1_cat = `Length Category_1`, Length_Unit = `Length Unit`,
+         Whole_weight= `whole weight`, Weight_Unit =`Weight Unit`,
+         Sex,Stage,
+         Zone,Location, 
+         Year,DOC, Shot = `Operation Number`) %>% 
+    mutate(Sex = ifelse(Sex == 1, "M",
+                      ifelse(Sex == 2, "F", NA)))
+```
+
+#### 2004
+
+need two data files to cross reference TZ and Edge data - which is not available for the whole data set
+
+```{r}
+A_04 <- A2004TZ %>% 
+  left_join(A2004, by = c("Batch", "Specimen"))
+
+A_04 <- A_04 %>%
+  mutate(doc1 = DOC) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  )
+
+A_04 <- A_04 %>%
+  mutate(Stage = NA) %>% 
+  mutate(Whole_weight = NA) %>% 
+  mutate(Weight_Unit =NA) %>% 
+  mutate(Year = 2004)
+
+A_04 <- A_04 %>% 
+  select(Batch_ID = Batch, FishNumber = Specimen, otoweight = `Otolith mass`,
+         `0-TZ` = ToLMZ, `TZ-E` = ToEdge, Age = `Total Age (years)`,
+         Length_1 = `Standard Length`, Length_1_cat = FishLencat, Length_Unit = FishLenunit,
+         Whole_weight, Weight_Unit,
+         Sex, Stage,
+         Zone, Location = AOC,
+         Year, DOC) %>% 
+  mutate(Shot = NA) %>% 
+      mutate(Sex = ifelse(Sex == 1, "M",
+                      ifelse(Sex == 2, "F", NA)))
+```
+
+#### 1999
+
+Notes on "Mark Type" this refers to whether or not the shot targeted roughy aggregations or the general background population. BS = backscatter St Helens, BP = backscatter St Pats, AS = Aggregation St Helens, AP = aggregations St Pats. For this purpose all fish were included from both backscatter and aggregations b/c the age of maturity would not depend on whether or not the fish was or was not spawning that year, although it was shown that the average length/age of backscatter population is lower that that of aggregations
+
+Note: Blank fields for "mark type" are assumed to be St Helens for the purposes of creating data for zone - as was assumed for the Index Report. Age at Maturity was reported for sex not by Area so this is not as importants
+
+```{r}
+
+A_99<- A1999 %>% 
+  filter(Year == 99) %>% 
+  mutate(Location = case_when(
+    `Mark type` == "AP" ~ "St Patricks",
+    `Mark type` == "BP" ~ "St Patricks",
+    `Mark type` == "AS" ~ "St Helens",
+    `Mark type` == "BS" ~ "St Helens",
+    is.na(`Mark type`) ~ "St Helens")) # assumption
+  
+A_99 <- A_99 %>%
+  mutate(doc1 = DOC) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  )
+
+A_99 <- A_99 %>%
+  mutate(Zone = "Eastern") %>% 
+  mutate(Stage = NA) %>% 
+  mutate(Whole_weight = NA) %>% 
+  mutate(Weight_Unit =NA) %>% 
+  mutate(Length_Unit = "cm") %>% 
+  mutate(Length_1_cat = "SL")
+
+A_99 <-  A_99%>% 
+  select(Batch_ID = Batch, FishNumber = `CAF Fish Number`, otoweight = `Otolith Weight`,
+         `0-TZ` = `To LMZ`, `TZ-E` = `To Edge`, Age,
+         Length_1 = `Length Class (cm)`, Length_1_cat, Length_Unit,
+         Whole_weight, Weight_Unit,
+         Sex, Stage,
+         Zone, Location,Year, DOC) %>% 
+  mutate(Shot = NA)
+```
+
+#### 1992
+
+Note: cross checking to log book allows for all records to be used, all St Helens
+
+BOAT	DATE	     Total	 log book  	details				
+L.Dorn	7-Jun-92	291	    close	    2 shots, 8 June	39.88	148.98	40	148.98
+L.Dorn	21-Jun-92	169	    yes	      6 shots	-41.25	148.75		
+L.Dorn	30-Jun-92	47	    yes	      4 shots	-41.21	148.75		
+Monika	7-Jun-92	255	    close	    2 shots, 6 July	-41.21	148.75		
+Orion	  25-Jun-92	245	    yes	      3 shots	-41.25	148.75	
+
+```{r}
+
+A1992 <- A1992 %>%
+  mutate(doc1 = DATE) %>% 
+  separate(
+    doc1,                 # your character date column
+    into = c("Day", "Month", "Year"),
+    sep = "-",            # assuming format is "DD/MM/YYYY"
+    convert = TRUE        # converts to numeric automatically
+  )%>% 
+  
+  mutate(Stage = NA) %>% 
+  mutate(Whole_weight = NA) %>% 
+  mutate(Weight_Unit =NA) %>% 
+  mutate(Length_Unit = "cm") %>% 
+  mutate(Length_1_cat = "SL") %>% 
+  mutate(Batch_ID = NA) %>% 
+  mutate(FishNumber = NA) %>% 
+  mutate(Location = "St Helens") %>% 
+  mutate(Year = 1992)
+  
+
+A_92 <-  A1992 %>% 
+  select(Batch_ID, FishNumber, otoweight = OTWGHT,
+         `0-TZ` = TO_LMZ, `TZ-E` = TO_EDGE, Age = AGE,
+         Length_1 = LENGTH, Length_1_cat, Length_Unit,
+         Whole_weight,Weight_Unit,
+         Sex = SEX,Stage,
+         Zone = ZONE, Location,Year, DOC = DATE) %>% 
+  mutate(Shot = NA)
+```
+
+### 1987
+* all St Patricks depite what FAS records say - see "notes" above
+
+```{r}
+
+  A1987 <- A1987 %>% 
+  mutate(Stage = NA) %>% 
+  mutate(Whole_weight = NA) %>% 
+  mutate(Weight_Unit =NA) %>% 
+  mutate(Length_Unit = "cm") %>% 
+  mutate(Location = "St Patricks")
+
+A_87 <-  A1987 %>% 
+  select(Batch_ID = Batch...4, FishNumber = Specimen, otoweight = `Otolith Weight...23`,
+         `0-TZ` = `To LMZ`, `TZ-E` = `To Edge`, Age,
+         Length_1 = Length, Length_1_cat = lencode, Length_Unit,
+         Whole_weight,Weight_Unit,
+         Sex = Sex...10, Stage,
+         Zone, Location, Year = Year...2, DOC)
+
+   A_87 <-  A_87 %>% 
+     mutate(Shot = NA) %>% 
+     mutate(Sex = ifelse(Sex == 1, "M",
+                      ifelse(Sex == 2, "F", NA)))
+   
+A_87
+```
+
+### Bind all the data years together
+
+```{r}
+
+AGE_TZtoEdge <- A_87 %>% 
+  bind_rows(A_92) %>% 
+  bind_rows(A_99) %>% 
+   bind_rows(A_04) %>% 
+  bind_rows(A_10) %>% 
+  bind_rows(A_12n16) %>% 
+  bind_rows(A_19) %>% 
+  bind_rows(A_24)
+```
+
+checking data
+
+```{r}
+unique(AGE_TZtoEdge$Location)
+```
+conform the Location field
+```{r}
+AGE_TZtoEdge <- AGE_TZtoEdge %>% 
+
+  mutate(Location = case_when(
+    Location == "St Patricks Head"  ~ "St Patricks",
+    Location == "St. Patricks Head" ~ "St Patricks",
+    Location == "St Helens Hill"  ~ "St Helens",
+    TRUE ~ Location   # keeps all other existing values))
+  ))
+```
+
+check
+```{r}
+unique(AGE_TZtoEdge$Location)
+```
+
+conform date
+
+```{r}
+AGE_TZtoEdge <- AGE_TZtoEdge %>% 
+mutate(DOC = dmy(DOC))
+```
+
+
+```{r}
+AGE_TZtoEdge %>% 
+  mutate(datecapture = as.Date(DOC, format = "%d/%m/%Y")) %>% 
+  group_by(Year,Location,Shot, DOC) %>% 
+  summarise(n())
+```
+
+```{r}
+getwd()
+```
+
+Data summary for age
+NA values for Age
+```{r}
+#using stat_ecdf to calculate the cummulative requency of Age data
+
+AGE_TZtoEdge <- AGE_TZtoEdge %>% 
+  rename(toTZ = `0-TZ`) %>%
+  rename(toEdge = `TZ-E`)
+```
+
+checking NA values
+
+```{r}
+Age <- AGE_TZtoEdge %>% 
+  group_by(Year,Location) %>% 
+  summarise(Alldata = n(), .groups = "drop")
+
+AgeNotNA <- AGE_TZtoEdge %>% 
+  drop_na(Age) %>% 
+  group_by(Year,Location) %>% 
+  summarise(Age = n(), .groups = "drop")
+
+AgeNA <- AGE_TZtoEdge %>% 
+  filter(is.na(Age)) %>% 
+  group_by(Year,Location) %>% 
+  summarise(AgeNA = n(), .groups = "drop")
+
+toTZ <- AGE_TZtoEdge %>% 
+  drop_na(toTZ) %>% 
+  group_by(Year,Location) %>% 
+  summarise(toTZ = n(), .groups = "drop")
+
+toEdge <- AGE_TZtoEdge %>% 
+  drop_na(toEdge)%>% 
+  group_by(Year,Location) %>% 
+  summarise(EdgeNA = n(), .groups = "drop")
+
+AgedataSummary <- Age %>%
+  left_join(AgeNA, by = c("Year","Location")) %>% 
+  left_join(AgeNotNA, by = c("Year","Location")) %>% 
+  left_join(toTZ, by = c("Year","Location")) %>% 
+  left_join(toEdge, by = c("Year","Location"))
+```
+
+data checks
+
+drop NA values for Age
+- all data = 7066
+- removing NA for toTZ = 6085
+- removing toTZ values less that 1 = 6034
+- filtering for Sex = F or M = 6021
+- filtering for Stage > 1 but including NA = 6003
+```{r}
+unique(AGE_TZtoEdge$Sex)
+```
+
+```{r}
+
+AGE_TZtoEdge_TZnoNA <- AGE_TZtoEdge %>% 
+  drop_na(toTZ) %>%
+  arrange(Year) %>% 
+  filter(toTZ >= 1) %>% 
+  filter(Sex == "M" | Sex == "F") %>% 
+  filter(is.na(Stage) | Stage != 1) %>% 
+  arrange()
+
+min(AGE_TZtoEdge_TZnoNA$toTZ)
+max(AGE_TZtoEdge_TZnoNA$toTZ)
+unique(AGE_TZtoEdge_TZnoNA$Sex)
+unique(AGE_TZtoEdge_TZnoNA$Stage)
+```
+
+graph age at maturity
+
+```{r}
+
+AgeMaturity <- ggplot(AGE_TZtoEdge_TZnoNA,aes(x= toTZ, colour = factor(Year))) +
+  #geom_smooth()+
+    stat_ecdf(geom = "smooth", size = 0.1)+
+  
+    scale_x_continuous(breaks = seq(8,90,10),limits = c(8,90))+
+    scale_y_continuous(breaks = seq(0,1,0.5))+
+#   facet_wrap(~Ground)+
+  ylab("cummulative frequency")+
+   xlab("Age (years)")+
+   theme_bw()+
+   theme(legend.position = "bottom")+
+  facet_wrap(~Sex)
+
+ plot(AgeMaturity)
+ ggsave(filename = "Figures/AgeMaturity.emf")
+  ggsave(filename = "Figures/AgeMaturity.jpg")
+```
+
+write the Age at Maturity dataset
+
+```{r}
+write.csv(AGE_TZtoEdge_TZnoNA,"Results/OrangeRoughyEasternZone_AgeMaturity_toTZ.csv")
+write.csv(AGE_TZtoEdge,"Results/OrangeRoughyEasternZone_AgeMaturity_toTZ.csv")
+```
+
+### Graphing
+
+```{r}
+AgeMaturity <- ggplot(AGE_TZtoEdge_TZnoNA,aes(x= toTZ, colour = factor(Year))) +
+  #geom_smooth()+
+    stat_ecdf(geom = "smooth", size = 0.1)+
+  
+    scale_x_continuous(breaks = seq(8,90,10),limits = c(8,90))+
+    scale_y_continuous(breaks = seq(0,1,0.5))+
+#   facet_wrap(~Ground)+
+  ylab("cummulative frequency")+
+   xlab("Age (years)")+
+   theme_bw()+
+   theme(legend.position = "bottom")+
+  facet_wrap(~Sex)
+
+plot(AgeMaturity)
+ggsave(filename = "Figures/AgeMaturity.emf") 
+ggsave(filename = "Figures/AgeMaturity.jpg")
+```
